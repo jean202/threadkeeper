@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/threadkeeper
+    username: threadkeeper
+    password: threadkeeper
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+threadkeeper:
+  notifications:
+    scheduler:
+      enabled: true
+      evaluation-delay-ms: ${THREADKEEPER_NOTIFICATION_EVALUATION_DELAY_MS:60000}
+      dispatch-delay-ms: ${THREADKEEPER_NOTIFICATION_DISPATCH_DELAY_MS:30000}
+    discord:
+      webhook-url: ${THREADKEEPER_DISCORD_WEBHOOK_URL:}

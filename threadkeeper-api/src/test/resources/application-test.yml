@@ -1,0 +1,4 @@
+threadkeeper:
+  notifications:
+    scheduler:
+      enabled: false
