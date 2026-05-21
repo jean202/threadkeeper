@@ -36,9 +36,7 @@ export default function ThreadDetail() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <Link href="/">
-        <a>← Back</a>
-      </Link>
+      <Link href="/">← Back</Link>
       <h1>{thread.title}</h1>
 
       <section style={{ marginBottom: '30px' }}>
@@ -92,9 +90,7 @@ export default function ThreadDetail() {
         {!latestHandoff ? (
           <p>
             No handoff yet.{' '}
-            <Link href={`/threads/${thread.id}/handoff`}>
-              <a>Create Draft</a>
-            </Link>
+            <Link href={`/threads/${thread.id}/handoff`}>Create Draft</Link>
           </p>
         ) : (
           <div>
@@ -103,9 +99,7 @@ export default function ThreadDetail() {
             {latestHandoff.finalContent && (
               <p><strong>Final:</strong> {latestHandoff.finalContent.substring(0, 100)}...</p>
             )}
-            <Link href={`/threads/${thread.id}/handoff`}>
-              <a>View/Edit Handoff</a>
-            </Link>
+            <Link href={`/threads/${thread.id}/handoff`}>View/Edit Handoff</Link>
           </div>
         )}
       </section>

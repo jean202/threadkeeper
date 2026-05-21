@@ -34,9 +34,7 @@ export default function HandoffDraft() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <Link href={`/threads/${thread.id}`}>
-        <a>← Back to Thread</a>
-      </Link>
+      <Link href={`/threads/${thread.id}`}>← Back to Thread</Link>
       <h1>Handoff Draft: {thread.title}</h1>
 
       <div style={{ marginBottom: '20px' }}>

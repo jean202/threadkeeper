@@ -30,8 +30,8 @@ export default function Home() {
     <div style={{ padding: '20px' }}>
       <h1>ThreadKeeper</h1>
       <div style={{ marginBottom: '20px' }}>
-        <Link href="/today">
-          <a style={{ marginRight: '10px' }}>Today</a>
+        <Link href="/today" style={{ marginRight: '10px' }}>
+          Today
         </Link>
       </div>
       <h2>Threads</h2>
@@ -41,9 +41,7 @@ export default function Home() {
         <ul>
           {threads.map((thread) => (
             <li key={thread.id}>
-              <Link href={`/threads/${thread.id}`}>
-                <a>{thread.title}</a>
-              </Link>{' '}
+              <Link href={`/threads/${thread.id}`}>{thread.title}</Link>{' '}
               - {thread.status}
             </li>
           ))}

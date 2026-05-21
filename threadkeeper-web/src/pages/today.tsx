@@ -24,9 +24,7 @@ export default function Today() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <Link href="/">
-        <a>← Back</a>
-      </Link>
+      <Link href="/">← Back</Link>
       <h1>Today</h1>
       <div style={{ marginTop: '20px' }}>
         {threads.length === 0 ? (
@@ -39,9 +37,7 @@ export default function Today() {
                   <strong>{thread.title}</strong>
                   <p>Today Goal: {thread.todayGoal || 'N/A'}</p>
                   <p>Next Action: {thread.currentNextAction || 'N/A'}</p>
-                  <Link href={`/threads/${thread.id}`}>
-                    <a>View Details</a>
-                  </Link>
+                  <Link href={`/threads/${thread.id}`}>View Details</Link>
                 </div>
               </li>
             ))}
