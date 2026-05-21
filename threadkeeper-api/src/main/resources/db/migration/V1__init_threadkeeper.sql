@@ -39,7 +39,9 @@ create table source_sessions (
     started_at timestamp with time zone,
     last_activity_at timestamp with time zone,
     imported_at timestamp with time zone not null default current_timestamp,
-    metadata_json jsonb not null default '{}'::jsonb
+    metadata_json text not null default '{}',
+    created_at timestamp with time zone not null default current_timestamp,
+    updated_at timestamp with time zone not null default current_timestamp
 );
 
 create table thread_snapshots (
@@ -51,7 +53,8 @@ create table thread_snapshots (
     blockers text,
     drift_score numeric(5,2),
     drift_status varchar(20),
-    created_at timestamp with time zone not null default current_timestamp
+    created_at timestamp with time zone not null default current_timestamp,
+    updated_at timestamp with time zone not null default current_timestamp
 );
 
 create table handoffs (
@@ -65,7 +68,8 @@ create table handoffs (
     next_action text,
     files_note text,
     status varchar(20) not null,
-    created_at timestamp with time zone not null default current_timestamp
+    created_at timestamp with time zone not null default current_timestamp,
+    updated_at timestamp with time zone not null default current_timestamp
 );
 
 create table notification_rules (
@@ -75,7 +79,7 @@ create table notification_rules (
     channel varchar(30) not null,
     threshold_minutes integer,
     scheduled_time varchar(10),
-    config_json jsonb not null default '{}'::jsonb,
+    config_json text not null default '{}',
     created_at timestamp with time zone not null default current_timestamp,
     updated_at timestamp with time zone not null default current_timestamp
 );
@@ -86,10 +90,11 @@ create table notification_events (
     rule_id bigint references notification_rules(id),
     event_type varchar(30) not null,
     channel varchar(30) not null,
-    payload_json jsonb not null default '{}'::jsonb,
+    payload_json text not null default '{}',
     delivery_status varchar(20) not null,
     sent_at timestamp with time zone,
-    created_at timestamp with time zone not null default current_timestamp
+    created_at timestamp with time zone not null default current_timestamp,
+    updated_at timestamp with time zone not null default current_timestamp
 );
 
 create index idx_threads_status_priority_activity on threads (status, priority, last_activity_at);
