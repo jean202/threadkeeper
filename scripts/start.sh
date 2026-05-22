@@ -32,6 +32,23 @@ fi
 log "starting postgres (waiting until healthy)..."
 docker compose up -d --wait postgres
 
+# Container healthcheck passing doesn't guarantee the host-side port mapping
+# is ready yet -- on a cold boot Docker Desktop's vpnkit can take an extra
+# 30-60s to finish wiring localhost:5432. Probe from the host to be sure.
+log "probing host-side localhost:5432 (up to 120s)..."
+for _ in $(seq 1 60); do
+  if (echo >/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+    log "postgres reachable from host"
+    break
+  fi
+  sleep 2
+done
+
+if ! (echo >/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+  log "postgres still not reachable from host, aborting (LaunchAgent will retry)"
+  exit 1
+fi
+
 log "starting threadkeeper-api..."
 cd threadkeeper-api
 exec ./gradlew --no-daemon bootRun
