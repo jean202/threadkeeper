@@ -63,8 +63,8 @@ API runImport(CODEX)
 | `lastActivityAt` | **last line's** top-level `timestamp` | ISO instant |
 | `projectKey` | `session_meta.payload.cwd` | `basename(cwd)`, lowercased & sanitized; `"unknown"` when cwd missing. Full cwd preserved in metadata. |
 | `originalIntent` | **first `event_msg`/`user_message`** | the real typed user prompt. (Injected context arrives as `response_item`/message role=user and is naturally excluded.) |
-| `nextAction` | **last `event_msg`/`agent_message`**, fallback last `user_message` | heuristic — captures "what the agent last said it'd do." |
-| `title` | first ~80 chars of `originalIntent`, single-line | fallback `"{projectKey} session {YYYY-MM-DD}"` |
+| `nextAction` | **last `event_msg`/`agent_message`**, fallback last `user_message` | heuristic — captures "what the agent last said it'd do." If neither exists in the body, leave `null`. |
+| `title` | up to 80 code points of `originalIntent`, single-line | fallback `"{projectKey} session {YYYY-MM-DD}"` |
 
 **Codex line-type reference (observed):**
 `session_meta` (1 line, first) · `event_msg`/{`user_message`,`agent_message`,`agent_reasoning`,`token_count`} · `response_item`/{`message` role user/assistant, `reasoning`, `function_call`, `function_call_output`} · `turn_context`.
@@ -73,7 +73,7 @@ API runImport(CODEX)
 
 1. Read file as UTF-8; per-line `JSON.parse` in try/catch — malformed lines are skipped.
 2. Sanitizer pipeline:
-   1. Remove/replace unpaired surrogates (`\uD800`–`\uDFFF` without a valid pair).
+   1. Replace unpaired surrogates (`\uD800`–`\uDFFF` without a valid pair) with `U+FFFD` (Unicode replacement character).
    2. Strip control characters except `\n` and `\t`.
    3. NFC normalize.
 3. Truncate at **code-point boundaries** (use `Array.from`/spread, not UTF-16 `slice`). Caps: `title ≤ 200`, `originalIntent`/`nextAction ≤ 4000`.
@@ -102,7 +102,7 @@ No new DB columns. The plumbing carries new typed fields from bridge to existing
 - `originalIntent` = real first user prompt (replacing the current `"Imported from CODEX..."` placeholder).
 - `currentNextAction` = extracted `nextAction`.
 - `lastActivityAt` = session's real last activity (today this is always `Instant.now()`).
-- Implementation: keep the public Thread constructor unchanged; add a domain method `Thread.applyImportedSession(originalIntent, nextAction, lastActivityAt)` invoked right after construction.
+- Implementation: keep the public Thread constructor unchanged; add a domain method `Thread.applyImportedSession(originalIntent, nextAction, lastActivityAt)` invoked right after construction to **overwrite** the placeholder values the existing constructor sets (`originalIntent="Imported from..."`, `currentNextAction=todayGoal`, `lastActivityAt=now()`) with the real session-derived values.
 
 **Critical correctness — disable title-merge for session imports (1:1 guarantee):**
 
