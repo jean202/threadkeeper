@@ -47,3 +47,14 @@ test("extractSessionFromFile lastActivityAt falls back to last timestamped line 
   // no-messages.jsonl: session_meta (10:00:00) + turn_context (10:00:05). Last line with a timestamp is turn_context.
   assert.equal(result.lastActivityAt, "2026-05-01T10:00:05.000Z");
 });
+
+test("nextAction: empty agent_message does not shadow the user_message fallback", () => {
+  const result = extractSessionFromFile(fixture("empty-agent-message.jsonl"));
+  assert.equal(result.nextAction, "do the thing");
+});
+
+test("lastActivityAt falls back to startedAt when no line has a top-level timestamp", () => {
+  const result = extractSessionFromFile(fixture("no-top-level-timestamp.jsonl"));
+  assert.equal(result.startedAt, "2026-05-01T09:59:00.000Z");
+  assert.equal(result.lastActivityAt, "2026-05-01T09:59:00.000Z");
+});
