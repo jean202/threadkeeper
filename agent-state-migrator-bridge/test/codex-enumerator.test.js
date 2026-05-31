@@ -21,3 +21,18 @@ test("extractSessionFromFile picks first event_msg/user_message as originalInten
   const result = extractSessionFromFile(fixture("happy.jsonl"));
   assert.equal(result.originalIntent, "Fix the login bug please.");
 });
+
+test("extractSessionFromFile picks last agent_message as nextAction", () => {
+  const result = extractSessionFromFile(fixture("happy.jsonl"));
+  assert.equal(result.nextAction, "I will start by inspecting auth.ts and add a regression test.");
+});
+
+test("extractSessionFromFile falls back to last user_message when no agent_message", () => {
+  const result = extractSessionFromFile(fixture("no-agent-message.jsonl"));
+  assert.equal(result.nextAction, "Last ask");
+});
+
+test("extractSessionFromFile nextAction null when neither agent_message nor user_message", () => {
+  const result = extractSessionFromFile(fixture("no-messages.jsonl"));
+  assert.equal(result.nextAction, null);
+});
