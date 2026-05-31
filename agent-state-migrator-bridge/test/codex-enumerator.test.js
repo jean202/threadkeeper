@@ -16,3 +16,8 @@ test("extractSessionFromFile parses session_meta into canonical fields", () => {
   assert.equal(result.startedAt, "2026-05-01T10:00:00.000Z");
   assert.equal(result.projectKey, "example-api");
 });
+
+test("extractSessionFromFile picks first event_msg/user_message as originalIntent", () => {
+  const result = extractSessionFromFile(fixture("happy.jsonl"));
+  assert.equal(result.originalIntent, "Fix the login bug please.");
+});
