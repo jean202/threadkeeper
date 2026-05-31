@@ -3,6 +3,7 @@ import path from "node:path";
 import { sanitizeString } from "./sanitize.js";
 
 const TITLE_MAX = 200;
+const TITLE_CODE_POINTS = 80;
 const PROJECT_KEY_MAX = 100;
 const INTENT_MAX = 4000;
 const NEXT_ACTION_MAX = 4000;
@@ -48,6 +49,15 @@ function findNextAction(lines) {
   return chosen == null ? null : sanitizeString(chosen, NEXT_ACTION_MAX);
 }
 
+function deriveTitle(originalIntent, projectKey, startedAt) {
+  if (typeof originalIntent === "string" && originalIntent.length > 0) {
+    const singleLine = originalIntent.replace(/\s+/g, " ").trim();
+    return sanitizeString(singleLine, TITLE_CODE_POINTS);
+  }
+  const date = typeof startedAt === "string" ? startedAt.slice(0, 10) : "unknown";
+  return sanitizeString(`${projectKey} session ${date}`, TITLE_MAX);
+}
+
 function findLastActivityAt(lines, fallbackStartedAt) {
   for (let i = lines.length - 1; i >= 0; i -= 1) {
     const obj = safeParseLine(lines[i]);
@@ -66,15 +76,18 @@ export function extractSessionFromFile(filePath) {
 
   const payload = meta.payload;
   const startedAt = payload.timestamp ?? null;
+  const projectKey = deriveProjectKey(payload.cwd);
+  const originalIntent = findFirstUserMessage(lines);
   return {
     provider: "CODEX",
     providerSessionKey: payload.id,
     sourceType: "session",
     sourcePath: filePath,
     startedAt,
-    projectKey: deriveProjectKey(payload.cwd),
-    originalIntent: findFirstUserMessage(lines),
+    projectKey,
+    originalIntent,
     nextAction: findNextAction(lines),
     lastActivityAt: findLastActivityAt(lines, startedAt),
+    title: deriveTitle(originalIntent, projectKey, startedAt),
   };
 }

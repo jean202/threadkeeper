@@ -58,3 +58,13 @@ test("lastActivityAt falls back to startedAt when no line has a top-level timest
   assert.equal(result.startedAt, "2026-05-01T09:59:00.000Z");
   assert.equal(result.lastActivityAt, "2026-05-01T09:59:00.000Z");
 });
+
+test("extractSessionFromFile title is first 80 code points of originalIntent single-lined", () => {
+  const result = extractSessionFromFile(fixture("happy.jsonl"));
+  assert.equal(result.title, "Fix the login bug please.");
+});
+
+test("extractSessionFromFile title fallback uses '{projectKey} session {YYYY-MM-DD}' when no originalIntent", () => {
+  const result = extractSessionFromFile(fixture("no-messages.jsonl"));
+  assert.equal(result.title, "example-api session 2026-05-01");
+});
