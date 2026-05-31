@@ -99,3 +99,16 @@ test("extractSessionFromFile skips malformed lines and continues", () => {
   assert.equal(result.originalIntent, "Survived the bad line");
   assert.equal(result.nextAction, "Continuing past corruption");
 });
+
+test("extractSessionFromFile replaces lone surrogates in extracted strings (regression)", () => {
+  const result = extractSessionFromFile(fixture("lone-surrogate.jsonl"));
+  assert.notEqual(result, null);
+  // U+FFFD replaces the lone surrogates; the raw lone surrogates are gone
+  assert.equal(result.originalIntent.includes("�"), true);
+  assert.equal(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(result.originalIntent), false);
+  assert.equal(result.nextAction.includes("�"), true);
+  assert.equal(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(result.nextAction), false);
+  // The whole record must JSON.stringify cleanly (the original crash concern)
+  const json = JSON.stringify(result);
+  assert.equal(JSON.parse(json).originalIntent.includes("�"), true);
+});
