@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { extractSessionFromFile, findRolloutFiles } from "../src/codex-enumerator.js";
+import { extractSessionFromFile, findRolloutFiles, enumerateCodexSessions } from "../src/codex-enumerator.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = (name) => path.join(here, "fixtures", "codex", name);
@@ -125,4 +125,18 @@ test("findRolloutFiles walks a directory tree and returns only rollout-*.jsonl f
 test("findRolloutFiles returns empty array for a non-existent directory", () => {
   const files = findRolloutFiles(path.join(here, "fixtures", "does-not-exist-xyz"));
   assert.deepEqual(files, []);
+});
+
+test("enumerateCodexSessions walks a root, extracts sessions, returns summary", () => {
+  const root = path.join(here, "fixtures", "codex-enumerate");
+  const out = enumerateCodexSessions(root);
+  assert.equal(out.summary.scanned, 3);
+  assert.equal(out.summary.emitted, 2);    // A (happy) + C (malformed-but-recoverable); B (missing meta) skipped
+  assert.equal(out.summary.skippedFiles, 1);
+  assert.equal(out.sessions.length, 2);
+  const ids = out.sessions.map((s) => s.providerSessionKey).sort();
+  assert.deepEqual(ids, [
+    "aaaaaaaa-1111-2222-3333-444444444444",
+    "dddddddd-1111-2222-3333-444444444444",
+  ]);
 });

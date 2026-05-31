@@ -115,3 +115,33 @@ export function extractSessionFromFile(filePath) {
     title: deriveTitle(originalIntent, projectKey, startedAt),
   };
 }
+
+export function enumerateCodexSessions(rootDir) {
+  const files = findRolloutFiles(rootDir);
+  const sessions = [];
+  let skippedFiles = 0;
+  const warnings = [];
+  for (const file of files) {
+    try {
+      const session = extractSessionFromFile(file);
+      if (session) {
+        sessions.push(session);
+      } else {
+        skippedFiles += 1;
+        warnings.push({ file, reason: "no session_meta" });
+      }
+    } catch (err) {
+      skippedFiles += 1;
+      warnings.push({ file, reason: `extract failed: ${err.message}` });
+    }
+  }
+  return {
+    sessions,
+    summary: {
+      scanned: files.length,
+      emitted: sessions.length,
+      skippedFiles,
+      warnings,
+    },
+  };
+}
