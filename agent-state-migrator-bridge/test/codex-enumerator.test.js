@@ -87,3 +87,15 @@ test("title is capped at 80 code points", () => {
   const result = extractSessionFromFile(fixture("long-multiline-intent.jsonl"));
   assert.equal(Array.from(result.title).length, 80);
 });
+
+test("extractSessionFromFile returns null when first line is not session_meta", () => {
+  const result = extractSessionFromFile(fixture("missing-meta.jsonl"));
+  assert.equal(result, null);
+});
+
+test("extractSessionFromFile skips malformed lines and continues", () => {
+  const result = extractSessionFromFile(fixture("malformed-line.jsonl"));
+  assert.notEqual(result, null);
+  assert.equal(result.originalIntent, "Survived the bad line");
+  assert.equal(result.nextAction, "Continuing past corruption");
+});
