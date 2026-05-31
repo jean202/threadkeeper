@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { extractSessionFromFile } from "../src/codex-enumerator.js";
+import { extractSessionFromFile, findRolloutFiles } from "../src/codex-enumerator.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = (name) => path.join(here, "fixtures", "codex", name);
@@ -111,4 +111,18 @@ test("extractSessionFromFile replaces lone surrogates in extracted strings (regr
   // The whole record must JSON.stringify cleanly (the original crash concern)
   const json = JSON.stringify(result);
   assert.equal(JSON.parse(json).originalIntent.includes("�"), true);
+});
+
+test("findRolloutFiles walks a directory tree and returns only rollout-*.jsonl files", () => {
+  const root = path.join(here, "fixtures", "codex-walk");
+  const files = findRolloutFiles(root).sort();
+  assert.deepEqual(files.map((f) => path.basename(f)), [
+    "rollout-2026-05-01T10-00-00-aaaa.jsonl",
+    "rollout-2026-05-02T11-00-00-bbbb.jsonl",
+  ]);
+});
+
+test("findRolloutFiles returns empty array for a non-existent directory", () => {
+  const files = findRolloutFiles(path.join(here, "fixtures", "does-not-exist-xyz"));
+  assert.deepEqual(files, []);
 });

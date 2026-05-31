@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { sanitizeString } from "./sanitize.js";
 
@@ -66,6 +66,28 @@ function findLastActivityAt(lines, fallbackStartedAt) {
     if (obj && typeof obj.timestamp === "string") return obj.timestamp;
   }
   return fallbackStartedAt;
+}
+
+export function findRolloutFiles(rootDir) {
+  if (!existsSync(rootDir)) return [];
+  const out = [];
+  function walk(dir) {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.isFile() && /^rollout-.+\.jsonl$/.test(entry.name)) {
+        out.push(full);
+      }
+    }
+  }
+  walk(rootDir);
+  return out;
 }
 
 export function extractSessionFromFile(filePath) {
