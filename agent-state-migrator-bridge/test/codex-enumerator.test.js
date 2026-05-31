@@ -36,3 +36,14 @@ test("extractSessionFromFile nextAction null when neither agent_message nor user
   const result = extractSessionFromFile(fixture("no-messages.jsonl"));
   assert.equal(result.nextAction, null);
 });
+
+test("extractSessionFromFile lastActivityAt from last line top-level timestamp", () => {
+  const result = extractSessionFromFile(fixture("happy.jsonl"));
+  assert.equal(result.lastActivityAt, "2026-05-01T10:00:31.000Z");
+});
+
+test("extractSessionFromFile lastActivityAt falls back to last timestamped line when only meta+context", () => {
+  const result = extractSessionFromFile(fixture("no-messages.jsonl"));
+  // no-messages.jsonl: session_meta (10:00:00) + turn_context (10:00:05). Last line with a timestamp is turn_context.
+  assert.equal(result.lastActivityAt, "2026-05-01T10:00:05.000Z");
+});

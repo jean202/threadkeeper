@@ -48,6 +48,14 @@ function findNextAction(lines) {
   return chosen == null ? null : sanitizeString(chosen, NEXT_ACTION_MAX);
 }
 
+function findLastActivityAt(lines, fallbackStartedAt) {
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const obj = safeParseLine(lines[i]);
+    if (obj && typeof obj.timestamp === "string") return obj.timestamp;
+  }
+  return fallbackStartedAt;
+}
+
 export function extractSessionFromFile(filePath) {
   const raw = readFileSync(filePath, "utf8");
   const lines = raw.split(/\r?\n/).filter((line) => line.length > 0);
@@ -57,14 +65,16 @@ export function extractSessionFromFile(filePath) {
   if (!meta || meta.type !== "session_meta" || !meta.payload?.id) return null;
 
   const payload = meta.payload;
+  const startedAt = payload.timestamp ?? null;
   return {
     provider: "CODEX",
     providerSessionKey: payload.id,
     sourceType: "session",
     sourcePath: filePath,
-    startedAt: payload.timestamp ?? null,
+    startedAt,
     projectKey: deriveProjectKey(payload.cwd),
     originalIntent: findFirstUserMessage(lines),
     nextAction: findNextAction(lines),
+    lastActivityAt: findLastActivityAt(lines, startedAt),
   };
 }
