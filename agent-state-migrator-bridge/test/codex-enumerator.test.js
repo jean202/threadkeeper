@@ -68,3 +68,22 @@ test("extractSessionFromFile title fallback uses '{projectKey} session {YYYY-MM-
   const result = extractSessionFromFile(fixture("no-messages.jsonl"));
   assert.equal(result.title, "example-api session 2026-05-01");
 });
+
+test("title falls back when originalIntent is only whitespace", () => {
+  const result = extractSessionFromFile(fixture("whitespace-intent.jsonl"));
+  assert.equal(result.title, "example-api session 2026-05-01");
+});
+
+test("title collapses internal whitespace and newlines to single spaces", () => {
+  const result = extractSessionFromFile(fixture("long-multiline-intent.jsonl"));
+  // No newline or tab in the title; no double spaces.
+  assert.equal(result.title.includes("\n"), false);
+  assert.equal(result.title.includes("\t"), false);
+  assert.equal(result.title.includes("  "), false);
+  assert.ok(result.title.startsWith("Please refactor the authentication module and also update"));
+});
+
+test("title is capped at 80 code points", () => {
+  const result = extractSessionFromFile(fixture("long-multiline-intent.jsonl"));
+  assert.equal(Array.from(result.title).length, 80);
+});

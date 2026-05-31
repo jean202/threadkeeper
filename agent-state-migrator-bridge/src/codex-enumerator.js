@@ -50,8 +50,10 @@ function findNextAction(lines) {
 }
 
 function deriveTitle(originalIntent, projectKey, startedAt) {
-  if (typeof originalIntent === "string" && originalIntent.length > 0) {
-    const singleLine = originalIntent.replace(/\s+/g, " ").trim();
+  const singleLine = typeof originalIntent === "string"
+    ? originalIntent.replace(/\s+/g, " ").trim()
+    : "";
+  if (singleLine.length > 0) {
     return sanitizeString(singleLine, TITLE_CODE_POINTS);
   }
   const date = typeof startedAt === "string" ? startedAt.slice(0, 10) : "unknown";
