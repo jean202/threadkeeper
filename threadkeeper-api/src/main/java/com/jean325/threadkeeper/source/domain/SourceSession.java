@@ -75,6 +75,22 @@ public class SourceSession extends BaseEntity {
             String title,
             String metadataJson
     ) {
+        this(thread, providerConnection, providerSessionKey, provider,
+                sourcePath, sourceType, title, metadataJson, null, null);
+    }
+
+    public SourceSession(
+            Thread thread,
+            ProviderConnection providerConnection,
+            String providerSessionKey,
+            ProviderType provider,
+            String sourcePath,
+            String sourceType,
+            String title,
+            String metadataJson,
+            Instant startedAt,
+            Instant lastActivityAt
+    ) {
         this.thread = thread;
         this.providerConnection = providerConnection;
         this.providerSessionKey = providerSessionKey;
@@ -83,7 +99,8 @@ public class SourceSession extends BaseEntity {
         this.sourceType = sourceType;
         this.title = title;
         this.importedAt = Instant.now();
-        this.lastActivityAt = this.importedAt;
+        this.startedAt = startedAt;
+        this.lastActivityAt = lastActivityAt != null ? lastActivityAt : this.importedAt;
         this.metadataJson = metadataJson == null || metadataJson.isBlank() ? "{}" : metadataJson;
     }
 
@@ -119,6 +136,14 @@ public class SourceSession extends BaseEntity {
         return title;
     }
 
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public Instant getLastActivityAt() {
+        return lastActivityAt;
+    }
+
     public Instant getImportedAt() {
         return importedAt;
     }
@@ -128,11 +153,25 @@ public class SourceSession extends BaseEntity {
     }
 
     public void refreshFromImport(String sourcePath, String sourceType, String title, String metadataJson) {
+        refreshFromImport(sourcePath, sourceType, title, metadataJson, null, null);
+    }
+
+    public void refreshFromImport(
+            String sourcePath,
+            String sourceType,
+            String title,
+            String metadataJson,
+            Instant startedAt,
+            Instant lastActivityAt
+    ) {
         this.sourcePath = sourcePath;
         this.sourceType = sourceType;
         this.title = title;
-        this.lastActivityAt = Instant.now();
-        this.importedAt = this.lastActivityAt;
+        this.importedAt = Instant.now();
+        if (startedAt != null) {
+            this.startedAt = startedAt;
+        }
+        this.lastActivityAt = lastActivityAt != null ? lastActivityAt : this.importedAt;
         this.metadataJson = metadataJson == null || metadataJson.isBlank() ? "{}" : metadataJson;
     }
 }
