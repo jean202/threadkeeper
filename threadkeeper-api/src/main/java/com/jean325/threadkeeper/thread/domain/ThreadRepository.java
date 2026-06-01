@@ -12,4 +12,8 @@ public interface ThreadRepository extends JpaRepository<Thread, Long> {
             String title,
             ThreadStatus status
     );
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void deleteAllByIdIn(java.util.Collection<Long> ids);
 }

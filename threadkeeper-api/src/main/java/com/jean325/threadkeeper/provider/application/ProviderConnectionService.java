@@ -7,6 +7,7 @@ import com.jean325.threadkeeper.provider.dto.CreateProviderConnectionRequest;
 import com.jean325.threadkeeper.provider.dto.BridgeImportPayload;
 import com.jean325.threadkeeper.provider.dto.ImportSourceSessionsRequest;
 import com.jean325.threadkeeper.provider.dto.ProviderConnectionResponse;
+import com.jean325.threadkeeper.provider.dto.ResetConnectionImportsResponse;
 import com.jean325.threadkeeper.provider.dto.RunProviderImportRequest;
 import com.jean325.threadkeeper.snapshot.domain.SnapshotType;
 import com.jean325.threadkeeper.snapshot.domain.ThreadSnapshot;
@@ -98,6 +99,42 @@ public class ProviderConnectionService {
                         .toList()
         );
         return importSourceSessions(connectionId, importRequest);
+    }
+
+    @Transactional
+    public ResetConnectionImportsResponse resetConnectionImports(Long connectionId) {
+        ProviderConnection connection = providerConnectionRepository.findById(connectionId).orElseThrow();
+
+        List<SourceSession> sessions = sourceSessionRepository.findAllByProviderConnectionId(connectionId);
+
+        List<Long> candidateThreadIds = sessions.stream()
+                .map(s -> s.getThread().getId())
+                .distinct()
+                .toList();
+
+        // Only delete threads that have NO remaining source_sessions from another connection.
+        List<Long> threadsToDelete = candidateThreadIds.stream()
+                .filter(tid -> sourceSessionRepository
+                        .countByThreadIdAndProviderConnectionIdNot(tid, connectionId) == 0)
+                .toList();
+
+        long snapshotsDeleted = 0;
+        if (!threadsToDelete.isEmpty()) {
+            long before = threadSnapshotRepository.count();
+            threadSnapshotRepository.deleteAllByThreadIdIn(threadsToDelete);
+            snapshotsDeleted = before - threadSnapshotRepository.count();
+        }
+
+        long sourceSessionsDeleted = sessions.size();
+        sourceSessionRepository.deleteAllByProviderConnectionId(connectionId);
+
+        long threadsDeleted = 0;
+        if (!threadsToDelete.isEmpty()) {
+            threadRepository.deleteAllByIdIn(threadsToDelete);
+            threadsDeleted = threadsToDelete.size();
+        }
+
+        return new ResetConnectionImportsResponse(threadsDeleted, sourceSessionsDeleted, snapshotsDeleted);
     }
 
     private SourceSession importSingle(
