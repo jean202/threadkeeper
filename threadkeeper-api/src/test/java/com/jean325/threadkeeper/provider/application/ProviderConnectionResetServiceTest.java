@@ -57,4 +57,42 @@ class ProviderConnectionResetServiceTest {
         assertThat(sourceSessionRepository.findByProviderConnectionIdAndProviderSessionKey(claudeId, "claude-1")).isPresent();
         assertThat(threadRepository.findById(manual.getId())).isPresent();
     }
+
+    @Test
+    void resetPreservesThreadSharedWithAnotherConnection() {
+        Long codexId = service.createConnection(
+                new CreateProviderConnectionRequest(ProviderType.CODEX, "codex", null)).id();
+        Long claudeId = service.createConnection(
+                new CreateProviderConnectionRequest(ProviderType.CLAUDE, "claude", null)).id();
+
+        // CODEX session → creates a new thread T.
+        service.importSourceSessions(codexId, new ImportSourceSessionsRequest("full", false,
+                List.of(new ImportSourceSessionsRequest.SourceSessionImportRequest(
+                        null, "p", "CODEX", "codex-1", "session", "/p/a.jsonl",
+                        "t1", "{}", "i1", "n1", null, null))));
+        Long sharedThreadId = sourceSessionRepository
+                .findByProviderConnectionIdAndProviderSessionKey(codexId, "codex-1")
+                .orElseThrow().getThread().getId();
+
+        // CLAUDE session pinned to the SAME thread T via explicit threadId.
+        service.importSourceSessions(claudeId, new ImportSourceSessionsRequest("full", false,
+                List.of(new ImportSourceSessionsRequest.SourceSessionImportRequest(
+                        sharedThreadId, "p", "CLAUDE", "claude-1", "session", "/p/b.json",
+                        "t2", "{}", "i2", "n2", null, null))));
+
+        // Sanity: both sessions are on the same thread.
+        Long claudeThreadId = sourceSessionRepository
+                .findByProviderConnectionIdAndProviderSessionKey(claudeId, "claude-1")
+                .orElseThrow().getThread().getId();
+        assertThat(claudeThreadId).isEqualTo(sharedThreadId);
+
+        ResetConnectionImportsResponse result = service.resetConnectionImports(codexId);
+
+        // The CODEX source_session is gone, but the shared thread and CLAUDE session survive.
+        assertThat(result.sourceSessionsDeleted()).isEqualTo(1);
+        assertThat(result.threadsDeleted()).isEqualTo(0); // guard protected the shared thread
+        assertThat(sourceSessionRepository.findByProviderConnectionIdAndProviderSessionKey(codexId, "codex-1")).isEmpty();
+        assertThat(sourceSessionRepository.findByProviderConnectionIdAndProviderSessionKey(claudeId, "claude-1")).isPresent();
+        assertThat(threadRepository.findById(sharedThreadId)).isPresent();
+    }
 }
