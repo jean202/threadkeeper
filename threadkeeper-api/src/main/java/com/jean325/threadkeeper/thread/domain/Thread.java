@@ -147,4 +147,16 @@ public class Thread extends BaseEntity {
             this.currentNextAction = inferredNextAction;
         }
     }
+
+    public void applyImportedSession(String originalIntent, String currentNextAction, Instant lastActivityAt) {
+        if (originalIntent != null && !originalIntent.isBlank()) {
+            this.originalIntent = originalIntent;
+        }
+        if (currentNextAction != null && !currentNextAction.isBlank()) {
+            this.currentNextAction = currentNextAction;
+        }
+        if (lastActivityAt != null) {
+            this.lastActivityAt = lastActivityAt;
+        }
+    }
 }

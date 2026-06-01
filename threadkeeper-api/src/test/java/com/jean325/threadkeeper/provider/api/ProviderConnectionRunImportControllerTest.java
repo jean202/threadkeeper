@@ -41,7 +41,12 @@ class ProviderConnectionRunImportControllerTest {
                         "/Users/jean325/.codex/sessions/session-run-1.json",
                         "Bridge imported session",
                         "2026-04-29T00:00:00Z",
-                        "{\"itemId\":\"codex:sessions\"}"
+                        "{\"itemId\":\"codex:sessions\"}",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
                 ))
         ));
 

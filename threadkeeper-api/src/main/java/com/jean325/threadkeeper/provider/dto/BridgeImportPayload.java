@@ -14,7 +14,12 @@ public record BridgeImportPayload(
             String sourcePath,
             String title,
             String importedAt,
-            String metadataJson
+            String metadataJson,
+            String startedAt,
+            String lastActivityAt,
+            String projectKey,
+            String originalIntent,
+            String nextAction
     ) {
     }
 }

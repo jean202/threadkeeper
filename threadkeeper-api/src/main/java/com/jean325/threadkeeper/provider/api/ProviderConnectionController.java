@@ -4,11 +4,13 @@ import com.jean325.threadkeeper.provider.application.ProviderConnectionService;
 import com.jean325.threadkeeper.provider.dto.CreateProviderConnectionRequest;
 import com.jean325.threadkeeper.provider.dto.ImportSourceSessionsRequest;
 import com.jean325.threadkeeper.provider.dto.ProviderConnectionResponse;
+import com.jean325.threadkeeper.provider.dto.ResetConnectionImportsResponse;
 import com.jean325.threadkeeper.provider.dto.RunProviderImportRequest;
 import com.jean325.threadkeeper.source.dto.SourceSessionResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -54,5 +56,10 @@ public class ProviderConnectionController {
             @Valid @RequestBody RunProviderImportRequest request
     ) {
         return providerConnectionService.runImport(connectionId, request);
+    }
+
+    @DeleteMapping("/{connectionId}/imports")
+    public ResetConnectionImportsResponse resetImports(@PathVariable Long connectionId) {
+        return providerConnectionService.resetConnectionImports(connectionId);
     }
 }

@@ -73,7 +73,9 @@ public class SourceSession extends BaseEntity {
             String sourcePath,
             String sourceType,
             String title,
-            String metadataJson
+            String metadataJson,
+            Instant startedAt,
+            Instant lastActivityAt
     ) {
         this.thread = thread;
         this.providerConnection = providerConnection;
@@ -83,7 +85,8 @@ public class SourceSession extends BaseEntity {
         this.sourceType = sourceType;
         this.title = title;
         this.importedAt = Instant.now();
-        this.lastActivityAt = this.importedAt;
+        this.startedAt = startedAt;
+        this.lastActivityAt = lastActivityAt != null ? lastActivityAt : this.importedAt;
         this.metadataJson = metadataJson == null || metadataJson.isBlank() ? "{}" : metadataJson;
     }
 
@@ -119,6 +122,14 @@ public class SourceSession extends BaseEntity {
         return title;
     }
 
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public Instant getLastActivityAt() {
+        return lastActivityAt;
+    }
+
     public Instant getImportedAt() {
         return importedAt;
     }
@@ -127,12 +138,22 @@ public class SourceSession extends BaseEntity {
         return metadataJson;
     }
 
-    public void refreshFromImport(String sourcePath, String sourceType, String title, String metadataJson) {
+    public void refreshFromImport(
+            String sourcePath,
+            String sourceType,
+            String title,
+            String metadataJson,
+            Instant startedAt,
+            Instant lastActivityAt
+    ) {
         this.sourcePath = sourcePath;
         this.sourceType = sourceType;
         this.title = title;
-        this.lastActivityAt = Instant.now();
-        this.importedAt = this.lastActivityAt;
+        this.importedAt = Instant.now();
+        if (startedAt != null) {
+            this.startedAt = startedAt;
+        }
+        this.lastActivityAt = lastActivityAt != null ? lastActivityAt : this.importedAt;
         this.metadataJson = metadataJson == null || metadataJson.isBlank() ? "{}" : metadataJson;
     }
 }

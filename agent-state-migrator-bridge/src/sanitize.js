@@ -1,0 +1,29 @@
+export function truncateCodePoints(value, max) {
+  if (typeof value !== "string") return "";
+  const codePoints = Array.from(value);
+  if (codePoints.length <= max) return value;
+  return codePoints.slice(0, max).join("");
+}
+
+const LONE_SURROGATE_RE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+export function replaceLoneSurrogates(value) {
+  if (typeof value !== "string") return "";
+  return value.replace(LONE_SURROGATE_RE, "�");
+}
+
+// Strip C0 (U+0000–U+001F) and C1 (U+007F–U+009F) control chars, EXCEPT newline (\n, U+000A) and tab (\t, U+0009).
+const CONTROL_RE = /[\x00-\x08\x0B-\x1F\x7F-\x9F]/g;
+
+function stripControl(value) {
+  return value.replace(CONTROL_RE, "");
+}
+
+export function sanitizeString(value, maxCodePoints) {
+  if (typeof value !== "string") return "";
+  let out = replaceLoneSurrogates(value);
+  out = stripControl(out);
+  out = out.normalize("NFC");
+  out = truncateCodePoints(out, maxCodePoints);
+  return out;
+}

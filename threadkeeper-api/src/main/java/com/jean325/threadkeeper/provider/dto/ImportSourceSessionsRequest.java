@@ -19,7 +19,11 @@ public record ImportSourceSessionsRequest(
             @NotNull @Size(max = 50) String sourceType,
             @Size(max = 500) String sourcePath,
             @Size(max = 200) String title,
-            String metadataJson
+            String metadataJson,
+            String originalIntent,
+            String nextAction,
+            String startedAt,
+            String lastActivityAt
     ) {
     }
 }

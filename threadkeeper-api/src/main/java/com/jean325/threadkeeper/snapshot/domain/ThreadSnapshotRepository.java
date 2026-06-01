@@ -7,4 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ThreadSnapshotRepository extends JpaRepository<ThreadSnapshot, Long> {
     List<ThreadSnapshot> findAllByThreadIdOrderByCreatedAtDesc(Long threadId);
     Optional<ThreadSnapshot> findFirstByThreadIdOrderByCreatedAtDesc(Long threadId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void deleteAllByThreadIdIn(java.util.Collection<Long> threadIds);
 }

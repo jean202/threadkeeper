@@ -1,0 +1,2 @@
+{"type":"session_meta","payload":{"id":"eeeeeeee-1111-2222-3333-444444444444","timestamp":"2026-05-01T09:59:00.000Z","cwd":"/Users/dev/projects/example-api","originator":"codex_cli_rs"}}
+{"type":"event_msg","payload":{"type":"user_message","message":"no timestamp on this line"}}
