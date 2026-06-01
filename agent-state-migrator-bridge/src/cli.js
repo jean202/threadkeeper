@@ -2,7 +2,7 @@
 
 import { importSourceSessions } from "./index.js";
 
-function parseArguments(argv) {
+export function parseArguments(argv) {
   const options = {
     profile: "full",
     target: "codex,claude",
@@ -29,6 +29,10 @@ function parseArguments(argv) {
         options.target = value;
         index += 1;
         break;
+      case "--codex-home":
+        options.codexHome = value;
+        index += 1;
+        break;
       case "--include-sensitive":
         options.includeSensitive = true;
         break;
@@ -37,7 +41,12 @@ function parseArguments(argv) {
     }
   }
 
-  if (!options.cliPath) {
+  const targets = String(options.target)
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const needsMigrator = targets.some((t) => t !== "codex");
+  if (needsMigrator && !options.cliPath) {
     throw new Error("--migrator-path is required");
   }
 
@@ -50,7 +59,9 @@ async function main() {
   console.log(JSON.stringify(payload, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
