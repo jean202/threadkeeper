@@ -202,3 +202,16 @@ Import is **not** auto-destructive — reset is a separate explicit call.
 3. Spot-checked threads carry: a real `original_intent` (not a placeholder), a non-empty `current_next_action`, a `project_key` derived from cwd basename, `started_at` from session_meta, `last_activity_at` from the file's last line.
 4. Running `runImport` a second time creates zero new threads; existing threads have `last_activity_at`/`current_next_action` advanced where the session grew, and unchanged `original_intent`.
 5. The bridge unit-test suite includes and passes the lone-surrogate fixture case.
+
+## 12. Acceptance Run (2026-06-02)
+
+Executed against the live local environment (Docker `threadkeeper-postgres`, real `~/.codex/sessions`) using a feature-branch API instance on port 8081. DB tables were backed up first (`pg_dump` to `/tmp/tk_backup_*.sql`).
+
+- **Bridge on real data (non-destructive):** `node src/cli.js --target codex --codex-home ~/.codex/sessions` over **258** real rollout files → `summary.codex = {scanned:258, emitted:258, skippedFiles:0, warnings:0}`, exit 0, **no crash** on real emoji/Unicode content. 256/258 carried `originalIntent`/`nextAction` (2 sessions have no user message → null); 258/258 carried `startedAt`/`lastActivityAt`; 50 distinct projectKeys; title length ≤ 80; intent/nextAction ≤ 4000 (caps enforced). Zero U+FFFD in extracted fields (this data had no lone surrogates; the sanitizer itself is covered by the T11 regression fixture).
+- **AC1 — reset:** `DELETE /api/v1/provider-connections/1/imports` → `{threadsDeleted:29, sourceSessionsDeleted:29, snapshotsDeleted:29}`, HTTP 200. DB afterward: 0 threads / 0 source_sessions / 0 snapshots.
+- **AC2 — 1:1 import:** `POST /…/imports/run` (target=codex), HTTP 201, ~3.8s → **258 source_sessions, 258 distinct threads** (perfect 1:1), 258 snapshots, 50 distinct project_keys.
+- **AC3 — rich fields:** all 258 threads have non-blank `original_intent`; exactly **2** carry the fallback placeholder (the 2 user-message-less sessions); 258/258 have `started_at` and `last_activity_at`; `started_at` ranges 2025-11-28 … 2026-06-01 (real session dates, not import time).
+- **AC4 — idempotency:** a second `runImport` → still **258 threads / 258 source_sessions** (zero new), snapshots grew 258 → 516 (one "Refreshed" PROGRESS snapshot per session, as designed).
+- **AC5:** bridge `npm test` 37/37 green including the lone-surrogate regression; API `./gradlew test` 32/32 green.
+
+All acceptance criteria met. The temporary :8081 instance was stopped after verification; the launchd :8080 instance continues to serve the new 258-session data (schema unchanged, no migration).
