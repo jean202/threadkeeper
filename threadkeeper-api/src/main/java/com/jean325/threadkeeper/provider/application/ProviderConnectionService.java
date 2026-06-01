@@ -171,36 +171,40 @@ public class ProviderConnectionService {
             ProviderType providerType,
             ImportSourceSessionsRequest.SourceSessionImportRequest item
     ) {
-        String title = item.title() == null || item.title().isBlank()
-                ? providerType.name() + " " + item.sourceType() + " session"
-                : item.title();
-
         if (item.threadId() != null) {
             Thread explicitThread = threadRepository.findById(item.threadId()).orElseThrow();
             explicitThread.touch("Review linked import for " + providerType.name() + ".");
             return explicitThread;
         }
 
-        if (item.projectKey() != null && !item.projectKey().isBlank()) {
-            Thread sameProjectAndTitle = threadRepository
-                    .findTopByProjectKeyIgnoreCaseAndTitleIgnoreCaseAndStatusOrderByLastActivityAtDesc(
-                            item.projectKey(),
-                            title,
-                            ThreadStatus.ACTIVE
-                    );
-            if (sameProjectAndTitle != null) {
-                sameProjectAndTitle.touch("Review linked import for " + providerType.name() + ".");
-                return sameProjectAndTitle;
-            }
-        }
+        boolean isSessionImport = "session".equalsIgnoreCase(item.sourceType());
+        String title = item.title() == null || item.title().isBlank()
+                ? providerType.name() + " " + item.sourceType() + " session"
+                : item.title();
 
-        Thread existingByTitle = threadRepository.findTopByTitleIgnoreCaseAndStatusOrderByLastActivityAtDesc(
-                title,
-                ThreadStatus.ACTIVE
-        );
-        if (existingByTitle != null) {
-            existingByTitle.touch("Review linked import for " + providerType.name() + ".");
-            return existingByTitle;
+        if (!isSessionImport) {
+            // Legacy aggregate path retains the title-merge behavior.
+            if (item.projectKey() != null && !item.projectKey().isBlank()) {
+                Thread sameProjectAndTitle = threadRepository
+                        .findTopByProjectKeyIgnoreCaseAndTitleIgnoreCaseAndStatusOrderByLastActivityAtDesc(
+                                item.projectKey(),
+                                title,
+                                ThreadStatus.ACTIVE
+                        );
+                if (sameProjectAndTitle != null) {
+                    sameProjectAndTitle.touch("Review linked import for " + providerType.name() + ".");
+                    return sameProjectAndTitle;
+                }
+            }
+
+            Thread existingByTitle = threadRepository.findTopByTitleIgnoreCaseAndStatusOrderByLastActivityAtDesc(
+                    title,
+                    ThreadStatus.ACTIVE
+            );
+            if (existingByTitle != null) {
+                existingByTitle.touch("Review linked import for " + providerType.name() + ".");
+                return existingByTitle;
+            }
         }
 
         return threadRepository.save(new Thread(
