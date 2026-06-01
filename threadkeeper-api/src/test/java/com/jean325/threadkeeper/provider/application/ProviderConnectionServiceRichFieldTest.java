@@ -68,4 +68,36 @@ class ProviderConnectionServiceRichFieldTest {
         assertThat(s.getLastActivityAt().toString()).isEqualTo("2026-05-01T10:30:00Z");
         assertThat(thread.getLastActivityAt().toString()).isEqualTo("2026-05-01T10:30:00Z");
     }
+
+    @Test
+    void refreshKeepsOriginalIntentAndAdvancesNextActionAndLastActivity() {
+        BridgeImportPayload first = new BridgeImportPayload(
+                "2026-05-30T00:00:00Z", List.of("CODEX"),
+                List.of(new BridgeImportPayload.SourceSessionPayload(
+                        "CODEX", "session-X", "session", "/p/x.jsonl",
+                        "Title v1", "2026-05-30T00:00:00Z", "{}",
+                        "2026-05-01T10:00:00Z", "2026-05-01T10:30:00Z",
+                        "example-api", "ORIGINAL intent", "old next")));
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class))).thenReturn(first);
+        service.runImport(connectionId, new RunProviderImportRequest("/u","/u","full","codex",false));
+
+        // Second run with the same session grown (new last-activity, different intent attempt, new next action)
+        BridgeImportPayload second = new BridgeImportPayload(
+                "2026-05-30T01:00:00Z", List.of("CODEX"),
+                List.of(new BridgeImportPayload.SourceSessionPayload(
+                        "CODEX", "session-X", "session", "/p/x.jsonl",
+                        "Title v2", "2026-05-30T01:00:00Z", "{}",
+                        "2026-05-01T10:00:00Z", "2026-05-02T12:00:00Z",
+                        "example-api", "DIFFERENT intent attempt", "NEW next")));
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class))).thenReturn(second);
+        service.runImport(connectionId, new RunProviderImportRequest("/u","/u","full","codex",false));
+
+        SourceSession s = sourceSessionRepository
+                .findByProviderConnectionIdAndProviderSessionKey(connectionId, "session-X").orElseThrow();
+        Thread thread = s.getThread();
+        assertThat(thread.getOriginalIntent()).isEqualTo("ORIGINAL intent"); // unchanged on refresh
+        assertThat(thread.getCurrentNextAction()).isEqualTo("NEW next");
+        assertThat(thread.getLastActivityAt().toString()).isEqualTo("2026-05-02T12:00:00Z");
+        assertThat(s.getLastActivityAt().toString()).isEqualTo("2026-05-02T12:00:00Z");
+    }
 }
