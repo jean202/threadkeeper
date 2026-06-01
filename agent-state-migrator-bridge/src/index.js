@@ -40,6 +40,7 @@ function buildCodexSourceSessionsFromEnumeration(enumeration) {
     nextAction: s.nextAction,
     metadata: {
       sourceType: s.sourceType,
+      cwd: s.cwd ?? null,
     },
   }));
 }

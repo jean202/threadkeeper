@@ -25,8 +25,21 @@ test("importSourceSessions with target=codex uses enumerator and emits rich fiel
   assert.equal(sample.projectKey, "example-api");
   assert.equal(sample.startedAt, "2026-05-01T10:00:00.000Z");
   assert.equal(sample.lastActivityAt, "2026-05-01T10:00:31.000Z");
+  assert.equal(sample.metadata.cwd, "/Users/dev/projects/example-api");
   // Summary present
   assert.equal(payload.summary.codex.scanned, 3);
   assert.equal(payload.summary.codex.emitted, 2);
   assert.equal(payload.summary.codex.skippedFiles, 1);
+});
+
+test("importSourceSessions target=codex,claude with no cliPath returns only codex sessions (no shell-out)", async () => {
+  const payload = await importSourceSessions({
+    target: "codex,claude",
+    codexHome: codexEnumerateRoot,
+    // no cliPath → non-codex branch must be skipped, not crash
+  });
+  assert.equal(payload.providers.includes("CODEX"), true);
+  assert.equal(payload.providers.includes("CLAUDE"), false);
+  assert.equal(payload.sourceSessions.length, 2);
+  assert.equal(payload.sourceSessions.every((s) => s.provider === "CODEX"), true);
 });

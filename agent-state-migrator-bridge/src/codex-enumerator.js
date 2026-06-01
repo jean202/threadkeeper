@@ -109,6 +109,7 @@ export function extractSessionFromFile(filePath) {
     sourcePath: filePath,
     startedAt,
     projectKey,
+    cwd: typeof payload.cwd === "string" ? payload.cwd : null,
     originalIntent,
     nextAction: findNextAction(lines),
     lastActivityAt: findLastActivityAt(lines, startedAt),

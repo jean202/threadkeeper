@@ -127,6 +127,16 @@ test("findRolloutFiles returns empty array for a non-existent directory", () => 
   assert.deepEqual(files, []);
 });
 
+test("extractSessionFromFile preserves the full cwd from session_meta", () => {
+  const result = extractSessionFromFile(fixture("happy.jsonl"));
+  assert.equal(result.cwd, "/Users/dev/projects/example-api");
+});
+
+test("extractSessionFromFile cwd is null when session_meta has no cwd", () => {
+  const result = extractSessionFromFile(fixture("no-cwd.jsonl"));
+  assert.equal(result.cwd, null);
+});
+
 test("enumerateCodexSessions walks a root, extracts sessions, returns summary", () => {
   const root = path.join(here, "fixtures", "codex-enumerate");
   const out = enumerateCodexSessions(root);
