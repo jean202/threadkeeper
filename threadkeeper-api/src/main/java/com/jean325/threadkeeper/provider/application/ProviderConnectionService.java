@@ -18,6 +18,7 @@ import com.jean325.threadkeeper.thread.domain.ThreadStatus;
 import com.jean325.threadkeeper.thread.domain.Thread;
 import com.jean325.threadkeeper.thread.domain.ThreadPriority;
 import com.jean325.threadkeeper.thread.domain.ThreadRepository;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,18 +82,18 @@ public class ProviderConnectionService {
                 request.includeSensitive(),
                 payload.sourceSessions().stream()
                         .map(item -> new ImportSourceSessionsRequest.SourceSessionImportRequest(
-                                null,
-                                null,                       // projectKey (wired in T20)
+                                null,                       // threadId
+                                item.projectKey(),
                                 item.provider(),
                                 item.providerSessionKey(),
                                 item.sourceType(),
                                 item.sourcePath(),
                                 item.title(),
                                 item.metadataJson(),
-                                null,                       // originalIntent (wired in T20)
-                                null,                       // nextAction (wired in T20)
-                                null,                       // startedAt (wired in T20)
-                                null                        // lastActivityAt (wired in T20)
+                                item.originalIntent(),
+                                item.nextAction(),
+                                item.startedAt(),
+                                item.lastActivityAt()
                         ))
                         .toList()
         );
@@ -104,12 +105,16 @@ public class ProviderConnectionService {
             ImportSourceSessionsRequest.SourceSessionImportRequest item
     ) {
         ProviderType providerType = ProviderType.valueOf(item.provider());
+        Instant startedAt = parseInstantOrNull(item.startedAt());
+        Instant lastActivityAt = parseInstantOrNull(item.lastActivityAt());
+
         SourceSession existing = sourceSessionRepository
                 .findByProviderConnectionIdAndProviderSessionKey(connection.getId(), item.providerSessionKey())
                 .orElse(null);
         if (existing != null) {
-            existing.refreshFromImport(item.sourcePath(), item.sourceType(), item.title(), item.metadataJson());
-            existing.getThread().touch("Review refreshed imported context.");
+            existing.refreshFromImport(item.sourcePath(), item.sourceType(), item.title(), item.metadataJson(), startedAt, lastActivityAt);
+            // Refresh thread: advance nextAction + lastActivity; keep originalIntent stable (pass null).
+            existing.getThread().applyImportedSession(null, item.nextAction(), lastActivityAt);
             threadSnapshotRepository.save(new ThreadSnapshot(
                     existing.getThread(),
                     SnapshotType.PROGRESS,
@@ -123,6 +128,8 @@ public class ProviderConnectionService {
         }
 
         Thread thread = findOrCreateThreadForImport(providerType, item);
+        thread.applyImportedSession(item.originalIntent(), item.nextAction(), lastActivityAt);
+
         SourceSession sourceSession = sourceSessionRepository.save(new SourceSession(
                 thread,
                 connection,
@@ -131,7 +138,9 @@ public class ProviderConnectionService {
                 item.sourcePath(),
                 item.sourceType(),
                 item.title(),
-                item.metadataJson()
+                item.metadataJson(),
+                startedAt,
+                lastActivityAt
         ));
 
         threadSnapshotRepository.save(new ThreadSnapshot(
@@ -145,6 +154,17 @@ public class ProviderConnectionService {
         ));
 
         return sourceSession;
+    }
+
+    private static Instant parseInstantOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     private Thread findOrCreateThreadForImport(
