@@ -73,20 +73,6 @@ public class SourceSession extends BaseEntity {
             String sourcePath,
             String sourceType,
             String title,
-            String metadataJson
-    ) {
-        this(thread, providerConnection, providerSessionKey, provider,
-                sourcePath, sourceType, title, metadataJson, null, null);
-    }
-
-    public SourceSession(
-            Thread thread,
-            ProviderConnection providerConnection,
-            String providerSessionKey,
-            ProviderType provider,
-            String sourcePath,
-            String sourceType,
-            String title,
             String metadataJson,
             Instant startedAt,
             Instant lastActivityAt
@@ -150,10 +136,6 @@ public class SourceSession extends BaseEntity {
 
     public String getMetadataJson() {
         return metadataJson;
-    }
-
-    public void refreshFromImport(String sourcePath, String sourceType, String title, String metadataJson) {
-        refreshFromImport(sourcePath, sourceType, title, metadataJson, null, null);
     }
 
     public void refreshFromImport(
