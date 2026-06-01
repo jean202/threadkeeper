@@ -82,13 +82,17 @@ public class ProviderConnectionService {
                 payload.sourceSessions().stream()
                         .map(item -> new ImportSourceSessionsRequest.SourceSessionImportRequest(
                                 null,
-                                null,
+                                null,                       // projectKey (wired in T20)
                                 item.provider(),
                                 item.providerSessionKey(),
                                 item.sourceType(),
                                 item.sourcePath(),
                                 item.title(),
-                                item.metadataJson()
+                                item.metadataJson(),
+                                null,                       // originalIntent (wired in T20)
+                                null,                       // nextAction (wired in T20)
+                                null,                       // startedAt (wired in T20)
+                                null                        // lastActivityAt (wired in T20)
                         ))
                         .toList()
         );
