@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.jean325.threadkeeper.global.error.ApiException;
+import com.jean325.threadkeeper.provider.domain.ProviderType;
+import com.jean325.threadkeeper.provider.dto.CreateProviderConnectionRequest;
 import com.jean325.threadkeeper.provider.dto.ImportSourceSessionsRequest;
 import com.jean325.threadkeeper.provider.dto.RunProviderImportRequest;
 import java.util.List;
@@ -52,6 +54,22 @@ class ProviderConnectionNotFoundTest {
         assertThatThrownBy(() -> service.resetConnectionImports(MISSING_ID))
                 .isInstanceOfSatisfying(ApiException.class, ex -> {
                     assertThat(ex.getCode()).isEqualTo("PROVIDER_CONNECTION_NOT_FOUND");
+                    assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                });
+    }
+
+    @Test
+    void importThrowsThreadNotFoundWhenExplicitThreadIdMissing() {
+        Long connectionId = service.createConnection(
+                new CreateProviderConnectionRequest(ProviderType.CODEX, "label", null)).id();
+        ImportSourceSessionsRequest request = new ImportSourceSessionsRequest("full", false, List.of(
+                new ImportSourceSessionsRequest.SourceSessionImportRequest(
+                        MISSING_ID, "p", "CODEX", "codex-1", "session", "/p/a.jsonl",
+                        "t1", "{}", "i1", "n1", null, null)));
+
+        assertThatThrownBy(() -> service.importSourceSessions(connectionId, request))
+                .isInstanceOfSatisfying(ApiException.class, ex -> {
+                    assertThat(ex.getCode()).isEqualTo("THREAD_NOT_FOUND");
                     assertThat(ex.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                 });
     }

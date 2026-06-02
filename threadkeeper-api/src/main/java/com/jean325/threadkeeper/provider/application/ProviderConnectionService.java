@@ -221,7 +221,12 @@ public class ProviderConnectionService {
             ImportSourceSessionsRequest.SourceSessionImportRequest item
     ) {
         if (item.threadId() != null) {
-            Thread explicitThread = threadRepository.findById(item.threadId()).orElseThrow();
+            Thread explicitThread = threadRepository.findById(item.threadId())
+                    .orElseThrow(() -> new ApiException(
+                            "THREAD_NOT_FOUND",
+                            "The requested thread does not exist.",
+                            HttpStatus.NOT_FOUND
+                    ));
             explicitThread.touch("Review linked import for " + providerType.name() + ".");
             return explicitThread;
         }
