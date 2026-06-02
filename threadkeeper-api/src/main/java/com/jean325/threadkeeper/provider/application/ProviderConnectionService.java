@@ -77,7 +77,8 @@ public class ProviderConnectionService {
 
     @Transactional
     public List<SourceSessionResponse> runImport(Long connectionId, RunProviderImportRequest request) {
-        BridgeImportPayload payload = bridgeImportClient.runImport(request);
+        ProviderConnection connection = providerConnectionRepository.findById(connectionId).orElseThrow();
+        BridgeImportPayload payload = bridgeImportClient.runImport(request, connection.getHomePath());
         ImportSourceSessionsRequest importRequest = new ImportSourceSessionsRequest(
                 request.profile() == null ? "full" : request.profile(),
                 request.includeSensitive(),

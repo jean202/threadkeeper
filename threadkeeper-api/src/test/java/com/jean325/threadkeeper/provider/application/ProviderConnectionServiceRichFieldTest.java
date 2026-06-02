@@ -51,7 +51,7 @@ class ProviderConnectionServiceRichFieldTest {
                         "2026-05-01T10:00:00Z", "2026-05-01T10:30:00Z",
                         "example-api", "Fix the login bug", "Inspect auth.ts"))
         );
-        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class))).thenReturn(payload);
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class), any())).thenReturn(payload);
 
         service.runImport(connectionId, new RunProviderImportRequest(
                 "/unused", "/unused", "full", "codex", false));
@@ -78,7 +78,7 @@ class ProviderConnectionServiceRichFieldTest {
                         "Title v1", "2026-05-30T00:00:00Z", "{}",
                         "2026-05-01T10:00:00Z", "2026-05-01T10:30:00Z",
                         "example-api", "ORIGINAL intent", "old next")));
-        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class))).thenReturn(first);
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class), any())).thenReturn(first);
         service.runImport(connectionId, new RunProviderImportRequest("/u","/u","full","codex",false));
 
         // Second run with the same session grown (new last-activity, different intent attempt, new next action)
@@ -89,7 +89,7 @@ class ProviderConnectionServiceRichFieldTest {
                         "Title v2", "2026-05-30T01:00:00Z", "{}",
                         "2026-05-01T10:00:00Z", "2026-05-02T12:00:00Z",
                         "example-api", "DIFFERENT intent attempt", "NEW next")));
-        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class))).thenReturn(second);
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class), any())).thenReturn(second);
         service.runImport(connectionId, new RunProviderImportRequest("/u","/u","full","codex",false));
 
         SourceSession s = sourceSessionRepository

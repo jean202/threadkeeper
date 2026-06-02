@@ -31,7 +31,7 @@ class ProviderConnectionRunImportControllerTest {
 
     @Test
     void runsBridgeImportAndPersistsSourceSessions() throws Exception {
-        when(bridgeImportClient.runImport(any())).thenReturn(new BridgeImportPayload(
+        when(bridgeImportClient.runImport(any(), any())).thenReturn(new BridgeImportPayload(
                 "2026-04-29T00:00:00Z",
                 List.of("CODEX"),
                 List.of(new BridgeImportPayload.SourceSessionPayload(
