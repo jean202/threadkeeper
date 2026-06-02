@@ -1,5 +1,6 @@
 package com.jean325.threadkeeper.provider.application;
 
+import com.jean325.threadkeeper.global.error.ApiException;
 import com.jean325.threadkeeper.provider.domain.ProviderConnection;
 import com.jean325.threadkeeper.provider.domain.ProviderConnectionRepository;
 import com.jean325.threadkeeper.provider.domain.ProviderType;
@@ -21,6 +22,7 @@ import com.jean325.threadkeeper.thread.domain.ThreadPriority;
 import com.jean325.threadkeeper.thread.domain.ThreadRepository;
 import java.time.Instant;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,7 +69,7 @@ public class ProviderConnectionService {
 
     @Transactional
     public List<SourceSessionResponse> importSourceSessions(Long connectionId, ImportSourceSessionsRequest request) {
-        ProviderConnection connection = providerConnectionRepository.findById(connectionId).orElseThrow();
+        ProviderConnection connection = getConnectionOrThrow(connectionId);
         List<SourceSession> imported = request.sourceSessions().stream()
                 .map(item -> importSingle(connection, item))
                 .toList();
@@ -77,7 +79,8 @@ public class ProviderConnectionService {
 
     @Transactional
     public List<SourceSessionResponse> runImport(Long connectionId, RunProviderImportRequest request) {
-        BridgeImportPayload payload = bridgeImportClient.runImport(request);
+        ProviderConnection connection = getConnectionOrThrow(connectionId);
+        BridgeImportPayload payload = bridgeImportClient.runImport(request, connection.getHomePath());
         ImportSourceSessionsRequest importRequest = new ImportSourceSessionsRequest(
                 request.profile() == null ? "full" : request.profile(),
                 request.includeSensitive(),
@@ -103,7 +106,7 @@ public class ProviderConnectionService {
 
     @Transactional
     public ResetConnectionImportsResponse resetConnectionImports(Long connectionId) {
-        ProviderConnection connection = providerConnectionRepository.findById(connectionId).orElseThrow();
+        ProviderConnection connection = getConnectionOrThrow(connectionId);
 
         List<SourceSession> sessions = sourceSessionRepository.findAllByProviderConnectionId(connectionId);
 
@@ -135,6 +138,15 @@ public class ProviderConnectionService {
         }
 
         return new ResetConnectionImportsResponse(threadsDeleted, sourceSessionsDeleted, snapshotsDeleted);
+    }
+
+    private ProviderConnection getConnectionOrThrow(Long connectionId) {
+        return providerConnectionRepository.findById(connectionId)
+                .orElseThrow(() -> new ApiException(
+                        "PROVIDER_CONNECTION_NOT_FOUND",
+                        "The requested provider connection does not exist.",
+                        HttpStatus.NOT_FOUND
+                ));
     }
 
     private SourceSession importSingle(
@@ -209,7 +221,12 @@ public class ProviderConnectionService {
             ImportSourceSessionsRequest.SourceSessionImportRequest item
     ) {
         if (item.threadId() != null) {
-            Thread explicitThread = threadRepository.findById(item.threadId()).orElseThrow();
+            Thread explicitThread = threadRepository.findById(item.threadId())
+                    .orElseThrow(() -> new ApiException(
+                            "THREAD_NOT_FOUND",
+                            "The requested thread does not exist.",
+                            HttpStatus.NOT_FOUND
+                    ));
             explicitThread.touch("Review linked import for " + providerType.name() + ".");
             return explicitThread;
         }

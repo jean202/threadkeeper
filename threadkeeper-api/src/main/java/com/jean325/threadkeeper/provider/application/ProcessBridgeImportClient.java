@@ -22,9 +22,9 @@ public class ProcessBridgeImportClient implements BridgeImportClient {
     }
 
     @Override
-    public BridgeImportPayload runImport(RunProviderImportRequest request) {
+    public BridgeImportPayload runImport(RunProviderImportRequest request, String codexHome) {
         try {
-            Process process = new ProcessBuilder(buildCommand(request))
+            Process process = new ProcessBuilder(buildCommand(request, codexHome))
                     .directory(resolveBridgeDirectory(request).toFile())
                     .redirectErrorStream(true)
                     .start();
@@ -51,7 +51,7 @@ public class ProcessBridgeImportClient implements BridgeImportClient {
         }
     }
 
-    private List<String> buildCommand(RunProviderImportRequest request) {
+    List<String> buildCommand(RunProviderImportRequest request, String codexHome) {
         List<String> command = new ArrayList<>();
         command.add("node");
         command.add("src/cli.js");
@@ -64,6 +64,10 @@ public class ProcessBridgeImportClient implements BridgeImportClient {
         if (request.includeSensitive()) {
             command.add("--include-sensitive");
         }
+        if (codexHome != null && !codexHome.isBlank()) {
+            command.add("--codex-home");
+            command.add(codexHome);
+        }
         return command;
     }
 
@@ -74,7 +78,7 @@ public class ProcessBridgeImportClient implements BridgeImportClient {
         return Path.of("").toAbsolutePath().getParent().resolve("agent-state-migrator-bridge");
     }
 
-    private JsonNode transformPayload(JsonNode root) {
+    JsonNode transformPayload(JsonNode root) {
         if (!root.has("sourceSessions")) {
             return root;
         }
