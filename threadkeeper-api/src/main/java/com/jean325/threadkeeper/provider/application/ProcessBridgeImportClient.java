@@ -78,7 +78,7 @@ public class ProcessBridgeImportClient implements BridgeImportClient {
         return Path.of("").toAbsolutePath().getParent().resolve("agent-state-migrator-bridge");
     }
 
-    private JsonNode transformPayload(JsonNode root) {
+    JsonNode transformPayload(JsonNode root) {
         if (!root.has("sourceSessions")) {
             return root;
         }
