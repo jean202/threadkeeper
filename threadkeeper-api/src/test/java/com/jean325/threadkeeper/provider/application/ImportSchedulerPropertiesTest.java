@@ -12,6 +12,8 @@ class ImportSchedulerPropertiesTest {
         assertThat(p.isEnabled()).isFalse();
         assertThat(p.getConnectionId()).isEqualTo(1L);
         assertThat(p.getTarget()).isEqualTo("codex,claude");
+        assertThat(p.getMigratorPath()).isEqualTo("");
+        assertThat(p.getBridgePath()).isEqualTo("");
         assertThat(p.getProfile()).isEqualTo("full");
         assertThat(p.isIncludeSensitive()).isFalse();
         assertThat(p.getCheckDelayMs()).isEqualTo(3_600_000L);
