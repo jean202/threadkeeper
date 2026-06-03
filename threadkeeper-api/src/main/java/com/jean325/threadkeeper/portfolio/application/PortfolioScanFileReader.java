@@ -14,13 +14,14 @@ import org.springframework.stereotype.Component;
 public class PortfolioScanFileReader {
 
     private final PortfolioProperties properties;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     private long cachedMtime = Long.MIN_VALUE;
     private List<PortfolioScanEntry> cached = List.of();
 
-    public PortfolioScanFileReader(PortfolioProperties properties) {
+    public PortfolioScanFileReader(PortfolioProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
+        this.objectMapper = objectMapper;
     }
 
     public synchronized List<PortfolioScanEntry> read() {

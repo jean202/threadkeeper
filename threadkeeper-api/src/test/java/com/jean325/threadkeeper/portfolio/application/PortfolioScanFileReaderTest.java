@@ -2,6 +2,7 @@ package com.jean325.threadkeeper.portfolio.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jean325.threadkeeper.portfolio.domain.PortfolioProperties;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +19,7 @@ class PortfolioScanFileReaderTest {
     private PortfolioScanFileReader readerFor(Path jsonPath) {
         PortfolioProperties props = new PortfolioProperties();
         props.setJsonPath(jsonPath.toString());
-        return new PortfolioScanFileReader(props);
+        return new PortfolioScanFileReader(props, new ObjectMapper());
     }
 
     @Test
@@ -53,7 +54,7 @@ class PortfolioScanFileReaderTest {
     void returnsEmptyWhenPathBlank() {
         PortfolioProperties props = new PortfolioProperties();
         props.setJsonPath("");
-        assertThat(new PortfolioScanFileReader(props).read()).isEmpty();
+        assertThat(new PortfolioScanFileReader(props, new ObjectMapper()).read()).isEmpty();
     }
 
     @Test
