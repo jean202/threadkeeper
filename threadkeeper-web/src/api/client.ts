@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { ThreadDetailResponse, ThreadResponse } from '@/types/thread';
+import { PortfolioReadiness } from '@/types/portfolio';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
@@ -47,6 +48,16 @@ export class ThreadKeeperClient {
       currentNextAction,
     });
     return response.data;
+  }
+
+  async getPortfolioReadiness(): Promise<Map<string, PortfolioReadiness>> {
+    try {
+      const response = await this.client.get<PortfolioReadiness[]>('/portfolio-readiness');
+      return new Map(response.data.map((item) => [item.projectKey, item]));
+    } catch {
+      // Graceful degradation: PT data is optional display context, never a hard failure.
+      return new Map();
+    }
   }
 }
 
