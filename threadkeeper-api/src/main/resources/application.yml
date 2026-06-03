@@ -32,3 +32,13 @@ threadkeeper:
     enabled: ${THREADKEEPER_PORTFOLIO_ENABLED:false}
     json-path: ${THREADKEEPER_PORTFOLIO_JSON_PATH:}
     stale-max-days: ${THREADKEEPER_PORTFOLIO_STALE_MAX_DAYS:14}
+  import-scheduler:
+    enabled: ${THREADKEEPER_IMPORT_ENABLED:false}
+    connection-id: ${THREADKEEPER_IMPORT_CONNECTION_ID:1}
+    target: ${THREADKEEPER_IMPORT_TARGET:codex,claude}
+    migrator-path: ${THREADKEEPER_IMPORT_MIGRATOR_PATH:}
+    bridge-path: ${THREADKEEPER_IMPORT_BRIDGE_PATH:}
+    profile: ${THREADKEEPER_IMPORT_PROFILE:full}
+    include-sensitive: ${THREADKEEPER_IMPORT_INCLUDE_SENSITIVE:false}
+    check-delay-ms: ${THREADKEEPER_IMPORT_CHECK_DELAY_MS:3600000}
+    staleness-threshold-hours: ${THREADKEEPER_IMPORT_STALENESS_HOURS:20}
