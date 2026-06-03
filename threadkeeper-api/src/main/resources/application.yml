@@ -28,3 +28,7 @@ threadkeeper:
       dispatch-delay-ms: ${THREADKEEPER_NOTIFICATION_DISPATCH_DELAY_MS:30000}
     discord:
       webhook-url: ${THREADKEEPER_DISCORD_WEBHOOK_URL:}
+  portfolio:
+    enabled: ${THREADKEEPER_PORTFOLIO_ENABLED:false}
+    json-path: ${THREADKEEPER_PORTFOLIO_JSON_PATH:}
+    stale-max-days: 14
