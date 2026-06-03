@@ -51,7 +51,9 @@ export default function ThreadDetail() {
         <p><strong>Status:</strong> {thread.status}</p>
         <p><strong>Priority:</strong> {thread.priority}</p>
         <p><strong>Drift Status:</strong> {thread.driftStatus}</p>
-        <p><strong>Portfolio:</strong> <PortfolioReadinessBadge readiness={readiness} /></p>
+        {readiness && (
+          <p><strong>Portfolio:</strong> <PortfolioReadinessBadge readiness={readiness} /></p>
+        )}
         <p><strong>Created:</strong> {new Date(thread.createdAt).toLocaleDateString()}</p>
       </section>
 

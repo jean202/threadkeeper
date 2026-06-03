@@ -31,4 +31,4 @@ threadkeeper:
   portfolio:
     enabled: ${THREADKEEPER_PORTFOLIO_ENABLED:false}
     json-path: ${THREADKEEPER_PORTFOLIO_JSON_PATH:}
-    stale-max-days: 14
+    stale-max-days: ${THREADKEEPER_PORTFOLIO_STALE_MAX_DAYS:14}
