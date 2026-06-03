@@ -75,4 +75,24 @@ class PortfolioReadinessServiceTest {
         assertThat(r.ageDays()).isEqualTo(-1);
         assertThat(r.stale()).isFalse();
     }
+
+    @Test
+    void notStaleAtExactlyStaleMaxDaysBoundary() {
+        // 2026-05-20 is exactly 14 days before now; stale uses strict > so this is NOT stale
+        var service = serviceWith(true, 14, List.of(
+                new PortfolioScanEntry("a", 50, 50, "2026-05-20T00:00:00Z")));
+        var r = service.listReadiness().get(0);
+        assertThat(r.ageDays()).isEqualTo(14);
+        assertThat(r.stale()).isFalse();
+    }
+
+    @Test
+    void handlesNullScannedAt() {
+        var service = serviceWith(true, 14, List.of(
+                new PortfolioScanEntry("a", 50, 50, null)));
+        var r = service.listReadiness().get(0);
+        assertThat(r.scannedAt()).isNull();
+        assertThat(r.ageDays()).isEqualTo(-1);
+        assertThat(r.stale()).isFalse();
+    }
 }
