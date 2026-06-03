@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
 import { ThreadDetailResponse, HandoffResponse } from '@/types/thread';
+import { PortfolioReadiness } from '@/types/portfolio';
+import PortfolioReadinessBadge from '@/components/PortfolioReadinessBadge';
 
 export default function ThreadDetail() {
   const router = useRouter();
@@ -10,14 +12,19 @@ export default function ThreadDetail() {
   const [thread, setThread] = useState<ThreadDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [readiness, setReadiness] = useState<PortfolioReadiness | undefined>(undefined);
 
   useEffect(() => {
     if (!threadId) return;
 
     const loadThread = async () => {
       try {
-        const data = await threadKeeperClient.getThread(Number(threadId));
+        const [data, readinessMap] = await Promise.all([
+          threadKeeperClient.getThread(Number(threadId)),
+          threadKeeperClient.getPortfolioReadiness(),
+        ]);
         setThread(data);
+        setReadiness(readinessMap.get(data.projectKey));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load thread');
       } finally {
@@ -44,6 +51,7 @@ export default function ThreadDetail() {
         <p><strong>Status:</strong> {thread.status}</p>
         <p><strong>Priority:</strong> {thread.priority}</p>
         <p><strong>Drift Status:</strong> {thread.driftStatus}</p>
+        <p><strong>Portfolio:</strong> <PortfolioReadinessBadge readiness={readiness} /></p>
         <p><strong>Created:</strong> {new Date(thread.createdAt).toLocaleDateString()}</p>
       </section>
 
