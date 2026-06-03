@@ -19,7 +19,7 @@ public class AutomaticImportScheduler {
     private final ImportSchedulerProperties properties;
     private final Clock clock;
 
-    private Instant lastAttempt;
+    private volatile Instant lastAttempt;
 
     public AutomaticImportScheduler(
             ProviderConnectionService providerConnectionService,
@@ -57,6 +57,8 @@ public class AutomaticImportScheduler {
             return;
         }
 
+        // Stamp before the attempt so a failed import also opens the throttle window
+        // (failed imports roll back, so lastImportAt would otherwise stay stale and retry every tick).
         lastAttempt = clock.instant();
         try {
             providerConnectionService.runImport(
@@ -77,7 +79,7 @@ public class AutomaticImportScheduler {
 
     private ProviderConnectionResponse findActiveConnection(long connectionId) {
         return providerConnectionService.listConnections().stream()
-                .filter(c -> c.id() != null && c.id() == connectionId)
+                .filter(c -> c.id() != null && c.id().equals(connectionId))
                 .filter(c -> "ACTIVE".equals(c.status()))
                 .findFirst()
                 .orElse(null);
