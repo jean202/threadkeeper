@@ -5,4 +5,7 @@ export interface PortfolioReadiness {
   scannedAt: string | null;
   stale: boolean;
   ageDays: number;
+  daysSinceLastCommit: number | null;
+  active: boolean | null;
+  lastCommitDate: string | null;
 }
