@@ -81,7 +81,8 @@ public class PortfolioScanFileReader {
         }
         JsonNode daysNode = activity.path("daysSinceLastCommit");
         Integer days = daysNode.isNumber() ? daysNode.asInt() : null;
-        boolean active = activity.path("isActive").asBoolean(false);
+        JsonNode activeNode = activity.path("isActive");
+        Boolean active = activeNode.isBoolean() ? activeNode.asBoolean() : null;
         String lastCommitDate = activity.path("lastCommitDate").asText(null);
         return new PortfolioScanEntry.GitActivity(days, active, lastCommitDate);
     }

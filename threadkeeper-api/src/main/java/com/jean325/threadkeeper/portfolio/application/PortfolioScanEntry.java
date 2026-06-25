@@ -8,5 +8,5 @@ public record PortfolioScanEntry(
         this(name, readiness, baseReadiness, scannedAt, null);
     }
 
-    public record GitActivity(Integer daysSinceLastCommit, boolean active, String lastCommitDate) {}
+    public record GitActivity(Integer daysSinceLastCommit, Boolean active, String lastCommitDate) {}
 }

@@ -123,4 +123,20 @@ class PortfolioScanFileReaderTest {
         assertThat(git.active()).isTrue();
         assertThat(git.lastCommitDate()).isNull();
     }
+
+    @Test
+    void gitActivityActiveNullWhenIsActiveAbsent() throws Exception {
+        Path file = tempDir.resolve("scan-no-isactive.json");
+        Files.writeString(file, """
+                {"projects":[
+                  {"name":"a","readiness":10,"baseReadiness":10,"scannedAt":"2026-06-02T00:00:00Z",
+                   "activity":{"lastCommitDate":"2026-04-09T10:08:44.000Z"}}
+                ]}
+                """);
+        PortfolioScanEntry.GitActivity git = readerFor(file).read().get(0).gitActivity();
+        assertThat(git).isNotNull();
+        assertThat(git.daysSinceLastCommit()).isNull();
+        assertThat(git.active()).isNull();
+        assertThat(git.lastCommitDate()).isEqualTo("2026-04-09T10:08:44.000Z");
+    }
 }
