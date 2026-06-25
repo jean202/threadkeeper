@@ -39,13 +39,20 @@ public class PortfolioReadinessService {
             Instant scannedAt = parseInstant(entry.scannedAt());
             long ageDays = scannedAt == null ? -1 : Duration.between(scannedAt, now).toDays();
             boolean stale = ageDays >= 0 && ageDays > properties.getStaleMaxDays();
+            PortfolioScanEntry.GitActivity git = entry.gitActivity();
+            Integer daysSinceLastCommit = git == null ? null : git.daysSinceLastCommit();
+            Boolean active = git == null ? null : git.active();
+            Instant lastCommitDate = git == null ? null : parseInstant(git.lastCommitDate());
             result.add(new PortfolioReadinessResponse(
                     projectKey,
                     entry.readiness(),
                     entry.baseReadiness(),
                     scannedAt,
                     stale,
-                    ageDays
+                    ageDays,
+                    daysSinceLastCommit,
+                    active,
+                    lastCommitDate
             ));
         }
         return List.copyOf(result);

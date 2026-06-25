@@ -66,11 +66,24 @@ public class PortfolioScanFileReader {
                 int readiness = project.path("readiness").asInt(0);
                 int baseReadiness = project.path("baseReadiness").asInt(readiness);
                 String scannedAt = project.path("scannedAt").asText(null);
-                entries.add(new PortfolioScanEntry(name, readiness, baseReadiness, scannedAt));
+                entries.add(new PortfolioScanEntry(
+                        name, readiness, baseReadiness, scannedAt, parseGitActivity(project.path("activity"))));
             }
             return List.copyOf(entries);
         } catch (IOException e) {
             return List.of();
         }
+    }
+
+    private PortfolioScanEntry.GitActivity parseGitActivity(JsonNode activity) {
+        if (!activity.isObject()) {
+            return null;
+        }
+        JsonNode daysNode = activity.path("daysSinceLastCommit");
+        Integer days = daysNode.isNumber() ? daysNode.asInt() : null;
+        JsonNode activeNode = activity.path("isActive");
+        Boolean active = activeNode.isBoolean() ? activeNode.asBoolean() : null;
+        String lastCommitDate = activity.path("lastCommitDate").asText(null);
+        return new PortfolioScanEntry.GitActivity(days, active, lastCommitDate);
     }
 }
