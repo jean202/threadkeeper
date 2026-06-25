@@ -95,4 +95,27 @@ class PortfolioReadinessServiceTest {
         assertThat(r.ageDays()).isEqualTo(-1);
         assertThat(r.stale()).isFalse();
     }
+
+    @Test
+    void mapsGitActivityIntoResponse() {
+        var service = serviceWith(true, 14, List.of(
+                new PortfolioScanEntry("a", 80, 80, "2026-06-03T00:00:00Z",
+                        new PortfolioScanEntry.GitActivity(76, true, "2026-04-09T10:08:44.000Z"))));
+        var r = service.listReadiness().get(0);
+        assertThat(r.daysSinceLastCommit()).isEqualTo(76);
+        assertThat(r.active()).isTrue();
+        assertThat(r.lastCommitDate()).isEqualTo(Instant.parse("2026-04-09T10:08:44.000Z"));
+        // readiness must be unaffected by git activity
+        assertThat(r.readiness()).isEqualTo(80);
+    }
+
+    @Test
+    void gitFieldsNullWhenNoGitActivity() {
+        var service = serviceWith(true, 14, List.of(
+                new PortfolioScanEntry("a", 50, 50, "2026-06-03T00:00:00Z")));
+        var r = service.listReadiness().get(0);
+        assertThat(r.daysSinceLastCommit()).isNull();
+        assertThat(r.active()).isNull();
+        assertThat(r.lastCommitDate()).isNull();
+    }
 }

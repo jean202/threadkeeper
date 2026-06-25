@@ -8,6 +8,9 @@ public record PortfolioReadinessResponse(
         int baseReadiness,
         Instant scannedAt,
         boolean stale,
-        long ageDays
+        long ageDays,
+        Integer daysSinceLastCommit,
+        Boolean active,
+        Instant lastCommitDate
 ) {
 }
