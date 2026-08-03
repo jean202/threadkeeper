@@ -59,6 +59,31 @@ public class NotificationRule extends BaseEntity {
         this.configJson = configJson == null || configJson.isBlank() ? "{}" : configJson;
     }
 
+    /** Partial update: null arguments leave the current value in place. */
+    public void update(
+            Boolean enabled,
+            NotificationChannel channel,
+            Integer thresholdMinutes,
+            String scheduledTime,
+            String configJson
+    ) {
+        if (enabled != null) {
+            this.enabled = enabled;
+        }
+        if (channel != null) {
+            this.channel = channel;
+        }
+        if (thresholdMinutes != null) {
+            this.thresholdMinutes = thresholdMinutes;
+        }
+        if (scheduledTime != null) {
+            this.scheduledTime = scheduledTime;
+        }
+        if (configJson != null && !configJson.isBlank()) {
+            this.configJson = configJson;
+        }
+    }
+
     public Long getId() {
         return id;
     }

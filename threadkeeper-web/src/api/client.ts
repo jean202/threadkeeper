@@ -2,10 +2,18 @@ import axios, { AxiosInstance } from 'axios';
 import {
   HandoffResponse,
   HandoffStatus,
+  NotificationEventResponse,
   ProviderType,
   ThreadDetailResponse,
   ThreadResponse,
 } from '@/types/thread';
+import {
+  CreateNotificationRuleRequest,
+  DispatchNotificationsResponse,
+  EvaluateNotificationRulesResponse,
+  NotificationRuleResponse,
+  UpdateNotificationRuleRequest,
+} from '@/types/notification';
 import { BriefingResponse, TodayDashboardResponse } from '@/types/dashboard';
 import { PortfolioReadiness } from '@/types/portfolio';
 
@@ -107,6 +115,48 @@ export class ThreadKeeperClient {
 
   async getBriefing(): Promise<BriefingResponse> {
     const response = await this.client.get<BriefingResponse>('/dashboard/briefing');
+    return response.data;
+  }
+
+  async listNotificationRules(): Promise<NotificationRuleResponse[]> {
+    const response = await this.client.get<NotificationRuleResponse[]>('/notification-rules');
+    return response.data;
+  }
+
+  async createNotificationRule(
+    data: CreateNotificationRuleRequest,
+  ): Promise<NotificationRuleResponse> {
+    const response = await this.client.post<NotificationRuleResponse>('/notification-rules', data);
+    return response.data;
+  }
+
+  async updateNotificationRule(
+    ruleId: number,
+    data: UpdateNotificationRuleRequest,
+  ): Promise<NotificationRuleResponse> {
+    const response = await this.client.patch<NotificationRuleResponse>(
+      `/notification-rules/${ruleId}`,
+      data,
+    );
+    return response.data;
+  }
+
+  async listNotificationEvents(): Promise<NotificationEventResponse[]> {
+    const response = await this.client.get<NotificationEventResponse[]>('/notification-events');
+    return response.data;
+  }
+
+  async evaluateNotificationRules(): Promise<EvaluateNotificationRulesResponse> {
+    const response = await this.client.post<EvaluateNotificationRulesResponse>(
+      '/notification-events/evaluate',
+    );
+    return response.data;
+  }
+
+  async dispatchNotifications(): Promise<DispatchNotificationsResponse> {
+    const response = await this.client.post<DispatchNotificationsResponse>(
+      '/notification-events/dispatch',
+    );
     return response.data;
   }
 
