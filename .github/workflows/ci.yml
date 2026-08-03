@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to the same branch makes the in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Must be 17: build.gradle.kts pins a Java 17 toolchain, and Gradle has no
+      # toolchain download repository configured, so any other JDK fails before compiling.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Run tests
+        working-directory: threadkeeper-api
+        run: ./gradlew test --no-daemon
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-report
+          path: threadkeeper-api/build/reports/tests/test
+          retention-days: 7
+
+  bridge:
+    name: Bridge tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The bridge has no dependencies and no lockfile; `npm test` is `node --test`.
+      - name: Run tests
+        working-directory: agent-state-migrator-bridge
+        run: npm test
+
+  web:
+    name: Web build
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: threadkeeper-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: threadkeeper-web
+        run: npm ci
+
+      # next build typechecks the project, so this covers tsc as well.
+      - name: Build
+        working-directory: threadkeeper-web
+        run: npm run build
