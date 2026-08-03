@@ -4,9 +4,17 @@ import {
   HandoffStatus,
   NotificationEventResponse,
   ProviderType,
+  SourceSessionResponse,
   ThreadDetailResponse,
   ThreadResponse,
 } from '@/types/thread';
+import {
+  CreateProviderConnectionRequest,
+  LatestImportResponse,
+  ProviderConnectionResponse,
+  ResetConnectionImportsResponse,
+  RunProviderImportRequest,
+} from '@/types/provider';
 import {
   CreateNotificationRuleRequest,
   DispatchNotificationsResponse,
@@ -156,6 +164,46 @@ export class ThreadKeeperClient {
   async dispatchNotifications(): Promise<DispatchNotificationsResponse> {
     const response = await this.client.post<DispatchNotificationsResponse>(
       '/notification-events/dispatch',
+    );
+    return response.data;
+  }
+
+  async listProviderConnections(): Promise<ProviderConnectionResponse[]> {
+    const response = await this.client.get<ProviderConnectionResponse[]>('/provider-connections');
+    return response.data;
+  }
+
+  async createProviderConnection(
+    data: CreateProviderConnectionRequest,
+  ): Promise<ProviderConnectionResponse> {
+    const response = await this.client.post<ProviderConnectionResponse>(
+      '/provider-connections',
+      data,
+    );
+    return response.data;
+  }
+
+  async getLatestImport(connectionId: number): Promise<LatestImportResponse> {
+    const response = await this.client.get<LatestImportResponse>(
+      `/provider-connections/${connectionId}/imports/latest`,
+    );
+    return response.data;
+  }
+
+  async runProviderImport(
+    connectionId: number,
+    data: RunProviderImportRequest,
+  ): Promise<SourceSessionResponse[]> {
+    const response = await this.client.post<SourceSessionResponse[]>(
+      `/provider-connections/${connectionId}/imports/run`,
+      data,
+    );
+    return response.data;
+  }
+
+  async resetProviderImports(connectionId: number): Promise<ResetConnectionImportsResponse> {
+    const response = await this.client.delete<ResetConnectionImportsResponse>(
+      `/provider-connections/${connectionId}/imports`,
     );
     return response.data;
   }

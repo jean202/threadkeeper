@@ -9,6 +9,7 @@ public interface SourceSessionRepository extends JpaRepository<SourceSession, Lo
     Optional<SourceSession> findFirstByThreadIdOrderByImportedAtDesc(Long threadId);
     Optional<SourceSession> findByProviderConnectionIdAndProviderSessionKey(Long providerConnectionId, String providerSessionKey);
     List<SourceSession> findAllByProviderConnectionId(Long providerConnectionId);
+    List<SourceSession> findAllByProviderConnectionIdOrderByImportedAtDesc(Long providerConnectionId);
     long countByThreadIdAndProviderConnectionIdNot(Long threadId, Long providerConnectionId);
     void deleteAllByProviderConnectionId(Long providerConnectionId);
 }

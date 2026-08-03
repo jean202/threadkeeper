@@ -10,6 +10,14 @@ Current local flow:
 4. let the notification scheduler evaluate rules and dispatch queued notifications
 5. manually trigger evaluation or dispatch only when needed
 
+The web app covers the same flow without curl:
+
+- `/today` renders the dashboard sections from `GET /api/v1/dashboard/today`
+- `/notifications` manages rules and shows delivery history
+- `/connections` registers providers, runs imports, and shows ingestion status
+
+Start it from `threadkeeper-web` with `npm install && npm run dev`.
+
 ## 2. Start API
 
 From `threadkeeper-api`:
@@ -186,3 +194,12 @@ If webhook delivery succeeds, queued events move to `SENT`.
 - daily briefing still uses simple `HH:mm` equality instead of a richer recurrence model
 - drift alert dedupe is fixed at a 60 minute window for now
 - thread merge heuristics are still basic compared with real multi-session workflows
+- `GET /api/v1/threads` ignores the `status`, `priority`, `projectKey`, `provider` and `q`
+  filters in the API draft, so the web list fetches everything
+- `GET /api/v1/notification-events` ignores its `deliveryStatus` and `eventType` filters; the
+  notifications screen filters client-side instead
+- no `PATCH /api/v1/threads/{threadId}` for general field edits; only status and next action
+  can be changed
+- health is exposed at actuator `/actuator/health`, not `/api/v1/health` as the draft says
+- the Gradle build pins a Java 17 toolchain, so a machine with only a newer JDK fails before
+  compiling

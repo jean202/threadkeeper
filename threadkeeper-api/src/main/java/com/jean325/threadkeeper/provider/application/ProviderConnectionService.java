@@ -7,6 +7,7 @@ import com.jean325.threadkeeper.provider.domain.ProviderType;
 import com.jean325.threadkeeper.provider.dto.CreateProviderConnectionRequest;
 import com.jean325.threadkeeper.provider.dto.BridgeImportPayload;
 import com.jean325.threadkeeper.provider.dto.ImportSourceSessionsRequest;
+import com.jean325.threadkeeper.provider.dto.LatestImportResponse;
 import com.jean325.threadkeeper.provider.dto.ProviderConnectionResponse;
 import com.jean325.threadkeeper.provider.dto.ResetConnectionImportsResponse;
 import com.jean325.threadkeeper.provider.dto.RunProviderImportRequest;
@@ -102,6 +103,37 @@ public class ProviderConnectionService {
                         .toList()
         );
         return importSourceSessions(connectionId, importRequest);
+    }
+
+    private static final int RECENT_SESSION_LIMIT = 5;
+
+    @Transactional(readOnly = true)
+    public LatestImportResponse latestImport(Long connectionId) {
+        ProviderConnection connection = getConnectionOrThrow(connectionId);
+        List<SourceSession> sessions =
+                sourceSessionRepository.findAllByProviderConnectionIdOrderByImportedAtDesc(connectionId);
+
+        long linkedThreadCount = sessions.stream()
+                .map(SourceSession::getThread)
+                .filter(thread -> thread != null)
+                .map(Thread::getId)
+                .distinct()
+                .count();
+
+        return new LatestImportResponse(
+                connection.getId(),
+                connection.getProvider().name(),
+                connection.getStatus().name(),
+                connection.getLastImportAt(),
+                connection.getLastErrorMessage(),
+                sessions.size(),
+                linkedThreadCount,
+                sessions.isEmpty() ? null : sessions.get(0).getImportedAt(),
+                sessions.stream()
+                        .limit(RECENT_SESSION_LIMIT)
+                        .map(SourceSessionResponse::from)
+                        .toList()
+        );
     }
 
     @Transactional

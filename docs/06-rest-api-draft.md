@@ -148,7 +148,12 @@ Example request:
 
 ### `GET /api/v1/provider-connections/{connectionId}/imports/latest`
 
-Return the latest import summary.
+Return the latest import summary: connection status, `lastImportAt`, `lastErrorMessage`,
+`importedSessionCount`, `linkedThreadCount`, `latestSessionImportedAt`, and the five most recent
+imported sessions.
+
+`lastImportAt` is the connection's own bookkeeping while `latestSessionImportedAt` comes from the
+imported rows, so a run that imported nothing leaves the two apart.
 
 ## 7. Dashboard
 
@@ -158,11 +163,41 @@ Return dashboard data.
 
 Response sections:
 
-- active threads
-- stale threads
-- blocked threads
-- completed today
-- recommended order
+- `activeThreads`
+- `staleThreads`
+- `blockedThreads`
+- `completedToday`
+- `recommendedOrder`
+
+The first four carry thread objects; `recommendedOrder` carries thread ids in resume-priority
+order, resolved by the caller against `activeThreads`.
+
+```json
+{
+  "activeThreads": [
+    {
+      "threadId": 1,
+      "projectKey": "threadkeeper",
+      "title": "Define MVP ingestion flow",
+      "status": "ACTIVE",
+      "priority": "HIGH",
+      "driftStatus": "ON_TRACK",
+      "nextAction": "Implement source session import service.",
+      "resumeReason": "STALE",
+      "staleMinutes": 480,
+      "lastActivityAt": "2026-06-25T02:00:00Z",
+      "completedAt": null
+    }
+  ],
+  "staleThreads": [],
+  "blockedThreads": [],
+  "completedToday": [],
+  "recommendedOrder": [1]
+}
+```
+
+`resumeReason` is one of `BLOCKED`, `DRIFTING`, `STALE`, `MISSING_NEXT_ACTION`, `HIGH_PRIORITY`,
+`READY`. `staleMinutes` is null when the thread has no recorded activity yet.
 
 ### `GET /api/v1/dashboard/briefing`
 
@@ -189,7 +224,14 @@ Create a rule.
 
 ### `PATCH /api/v1/notification-rules/{ruleId}`
 
-Update a rule.
+Update a rule. Partial: omitted or null fields keep their stored value. `ruleType` cannot be
+changed, because `thresholdMinutes` and `scheduledTime` only mean something relative to it.
+
+```json
+{
+  "enabled": false
+}
+```
 
 ## 9. Notification Events
 
