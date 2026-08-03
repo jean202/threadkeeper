@@ -1,5 +1,7 @@
 package com.jean325.threadkeeper.dashboard.api;
 
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -78,8 +80,48 @@ class DashboardControllerTest {
 
         mockMvc.perform(get("/api/v1/dashboard/today"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.blockedThreads[0]").value("Blocked thread"))
-                .andExpect(jsonPath("$.completedToday[0]").value("Completed today"));
+                .andExpect(jsonPath("$.blockedThreads[0].threadId").value(1))
+                .andExpect(jsonPath("$.blockedThreads[0].title").value("Blocked thread"))
+                .andExpect(jsonPath("$.blockedThreads[0].projectKey").value("threadkeeper"))
+                .andExpect(jsonPath("$.blockedThreads[0].nextAction").value("Unblock payment flow"))
+                .andExpect(jsonPath("$.blockedThreads[0].resumeReason").value("BLOCKED"))
+                .andExpect(jsonPath("$.completedToday[0].threadId").value(2))
+                .andExpect(jsonPath("$.completedToday[0].title").value("Completed today"))
+                .andExpect(jsonPath("$.completedToday[0].completedAt").exists());
+    }
+
+    @Test
+    void todayRanksActiveThreadsAndExposesRecommendedOrderAsThreadIds() throws Exception {
+        createThread("Low priority", "LOW", "Tidy the docs");
+        createThread("High stale", "HIGH", "Resume urgent work");
+
+        var highStale = threadRepository.findById(2L).orElseThrow();
+        ReflectionTestUtils.setField(highStale, "lastActivityAt", Instant.now().minus(8, ChronoUnit.HOURS));
+        threadRepository.save(highStale);
+
+        mockMvc.perform(get("/api/v1/dashboard/today"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activeThreads.length()").value(2))
+                .andExpect(jsonPath("$.staleThreads.length()").value(1))
+                .andExpect(jsonPath("$.staleThreads[0].title").value("High stale"))
+                .andExpect(jsonPath("$.staleThreads[0].staleMinutes").value(greaterThanOrEqualTo(480)))
+                .andExpect(jsonPath("$.recommendedOrder[0]").value(2))
+                .andExpect(jsonPath("$.recommendedOrder[1]").value(1));
+    }
+
+    @Test
+    void todayReportsNullStaleMinutesWhenThreadHasNoActivityYet() throws Exception {
+        createThread("Never touched", "MEDIUM", "Pick a starting point");
+
+        var thread = threadRepository.findById(1L).orElseThrow();
+        ReflectionTestUtils.setField(thread, "lastActivityAt", null);
+        threadRepository.save(thread);
+
+        mockMvc.perform(get("/api/v1/dashboard/today"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activeThreads[0].staleMinutes").value(nullValue()))
+                .andExpect(jsonPath("$.activeThreads[0].lastActivityAt").value(nullValue()))
+                .andExpect(jsonPath("$.activeThreads[0].resumeReason").value("STALE"));
     }
 
     private void createThread(String title, String priority, String nextAction) throws Exception {

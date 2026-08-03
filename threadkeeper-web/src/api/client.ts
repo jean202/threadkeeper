@@ -1,5 +1,12 @@
 import axios, { AxiosInstance } from 'axios';
-import { ThreadDetailResponse, ThreadResponse } from '@/types/thread';
+import {
+  HandoffResponse,
+  HandoffStatus,
+  ProviderType,
+  ThreadDetailResponse,
+  ThreadResponse,
+} from '@/types/thread';
+import { BriefingResponse, TodayDashboardResponse } from '@/types/dashboard';
 import { PortfolioReadiness } from '@/types/portfolio';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
@@ -47,6 +54,59 @@ export class ThreadKeeperClient {
     const response = await this.client.patch<ThreadResponse>(`/threads/${threadId}/next-action`, {
       currentNextAction,
     });
+    return response.data;
+  }
+
+  async listHandoffs(threadId: number): Promise<HandoffResponse[]> {
+    const response = await this.client.get<HandoffResponse[]>(`/threads/${threadId}/handoffs`);
+    return response.data;
+  }
+
+  async createHandoff(
+    threadId: number,
+    data: {
+      sourceSessionId?: number | null;
+      targetProvider: ProviderType;
+      reason?: string | null;
+      whatChanged?: string | null;
+      blockers?: string | null;
+      nextAction?: string | null;
+      filesNote?: string | null;
+      status?: HandoffStatus | null;
+    },
+  ): Promise<HandoffResponse> {
+    const response = await this.client.post<HandoffResponse>(
+      `/threads/${threadId}/handoffs`,
+      data,
+    );
+    return response.data;
+  }
+
+  async generateHandoffDraft(
+    threadId: number,
+    data: { targetProvider: ProviderType; sourceSessionId?: number | null; reasonHint?: string | null },
+  ): Promise<HandoffResponse> {
+    const response = await this.client.post<HandoffResponse>(
+      `/threads/${threadId}/handoffs/draft`,
+      data,
+    );
+    return response.data;
+  }
+
+  async updateHandoffStatus(handoffId: number, status: HandoffStatus): Promise<HandoffResponse> {
+    const response = await this.client.patch<HandoffResponse>(`/handoffs/${handoffId}/status`, {
+      status,
+    });
+    return response.data;
+  }
+
+  async getTodayDashboard(): Promise<TodayDashboardResponse> {
+    const response = await this.client.get<TodayDashboardResponse>('/dashboard/today');
+    return response.data;
+  }
+
+  async getBriefing(): Promise<BriefingResponse> {
+    const response = await this.client.get<BriefingResponse>('/dashboard/briefing');
     return response.data;
   }
 

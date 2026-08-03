@@ -1,49 +1,102 @@
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
-import { ThreadResponse } from '@/types/thread';
+import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
+import DashboardThreadList from '@/components/DashboardThreadList';
+import NavBar from '@/components/NavBar';
+import { formatTimestamp } from '@/lib/format';
+
+/**
+ * recommendedOrder is a list of thread ids; the full objects only live in activeThreads.
+ * Ids without a matching active thread are dropped rather than rendered as blanks.
+ */
+function resolveRecommended(dashboard: TodayDashboardResponse): DashboardThread[] {
+  const byId = new Map(dashboard.activeThreads.map((thread) => [thread.threadId, thread]));
+  return dashboard.recommendedOrder
+    .map((threadId) => byId.get(threadId))
+    .filter((thread): thread is DashboardThread => thread !== undefined);
+}
 
 export default function Today() {
-  const [threads, setThreads] = useState<ThreadResponse[]>([]);
+  const [dashboard, setDashboard] = useState<TodayDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadThreads = async () => {
+    const load = async () => {
       try {
-        const data = await threadKeeperClient.listThreads();
-        setThreads(data.filter((t) => t.status !== 'COMPLETED'));
+        setDashboard(await threadKeeperClient.getTodayDashboard());
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard');
       } finally {
         setLoading(false);
       }
     };
 
-    loadThreads();
+    load();
   }, []);
 
-  if (loading) return <div>Loading today's threads...</div>;
+  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
+  if (error) return <div style={{ padding: '20px' }}>Error: {error}</div>;
+  if (!dashboard) return <div style={{ padding: '20px' }}>No dashboard data</div>;
+
+  const recommended = resolveRecommended(dashboard);
 
   return (
     <div style={{ padding: '20px' }}>
-      <Link href="/">← Back</Link>
+      <NavBar current="/today" />
       <h1>Today</h1>
-      <div style={{ marginTop: '20px' }}>
-        {threads.length === 0 ? (
-          <p>No active threads</p>
+
+      <section style={{ marginBottom: '20px' }}>
+        <h2>Continue Now</h2>
+        <p style={{ color: '#666', fontSize: '13px' }}>
+          우선순위, 방향 이탈, 멈춘 시간을 합산한 순서입니다.
+        </p>
+        <DashboardThreadList threads={recommended} emptyMessage="이어갈 활성 스레드가 없습니다." />
+      </section>
+
+      <section style={{ marginBottom: '20px' }}>
+        <h2>Drift Warning ({dashboard.staleThreads.length})</h2>
+        <DashboardThreadList
+          threads={dashboard.staleThreads}
+          emptyMessage="오래 멈춘 스레드가 없습니다."
+        />
+      </section>
+
+      <section style={{ marginBottom: '20px' }}>
+        <h2>Needs Handoff ({dashboard.blockedThreads.length})</h2>
+        <p style={{ color: '#666', fontSize: '13px' }}>막혔거나 인계가 필요한 스레드입니다.</p>
+        <DashboardThreadList
+          threads={dashboard.blockedThreads}
+          emptyMessage="막힌 스레드가 없습니다."
+        />
+      </section>
+
+      <section style={{ marginBottom: '20px' }}>
+        <h2>Completed Today ({dashboard.completedToday.length})</h2>
+        {dashboard.completedToday.length === 0 ? (
+          <p style={{ color: '#888' }}>오늘 완료한 스레드가 없습니다.</p>
         ) : (
           <ul>
-            {threads.map((thread) => (
-              <li key={thread.id} style={{ marginBottom: '10px' }}>
-                <div>
-                  <strong>{thread.title}</strong>
-                  <p>Today Goal: {thread.todayGoal || 'N/A'}</p>
-                  <p>Next Action: {thread.currentNextAction || 'N/A'}</p>
-                  <Link href={`/threads/${thread.id}`}>View Details</Link>
+            {dashboard.completedToday.map((thread) => (
+              <li key={thread.threadId}>
+                <strong>{thread.title}</strong>
+                <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
+                  완료 {formatTimestamp(thread.completedAt)}
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
+
+      <section>
+        <h2>Active Threads ({dashboard.activeThreads.length})</h2>
+        <DashboardThreadList
+          threads={dashboard.activeThreads}
+          emptyMessage="활성 스레드가 없습니다."
+          showNextAction={false}
+        />
+      </section>
     </div>
   );
 }

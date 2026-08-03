@@ -4,6 +4,7 @@ import { threadKeeperClient } from '@/api/client';
 import { ThreadResponse } from '@/types/thread';
 import { PortfolioReadiness } from '@/types/portfolio';
 import PortfolioReadinessBadge from '@/components/PortfolioReadinessBadge';
+import NavBar from '@/components/NavBar';
 
 export default function Home() {
   const [threads, setThreads] = useState<ThreadResponse[]>([]);
@@ -35,12 +36,8 @@ export default function Home() {
 
   return (
     <div style={{ padding: '20px' }}>
+      <NavBar current="/" />
       <h1>ThreadKeeper</h1>
-      <div style={{ marginBottom: '20px' }}>
-        <Link href="/today" style={{ marginRight: '10px' }}>
-          Today
-        </Link>
-      </div>
       <h2>Threads</h2>
       {threads.length === 0 ? (
         <p>No threads found</p>
