@@ -219,6 +219,8 @@ clears the warning on the next evaluation.
 ## 10. Current Gaps
 
 - no auth or admin guard around manual evaluation and dispatch endpoints yet
+- the migration test runs on H2 in PostgreSQL mode, so it catches missing or
+  mistyped columns but not Postgres-specific SQL; that needs Testcontainers
 - daily briefing still uses simple `HH:mm` equality instead of a richer recurrence model
 - drift alert dedupe is fixed at a 60 minute window for now
 - thread merge heuristics are still basic compared with real multi-session workflows

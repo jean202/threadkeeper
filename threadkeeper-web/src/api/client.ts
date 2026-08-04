@@ -3,6 +3,9 @@ import {
   DriftEvaluationResponse,
   HandoffResponse,
   HandoffStatus,
+  NotificationChannel,
+  NotificationEventResponse,
+  NotificationRuleType,
   ProviderType,
   SnapshotType,
   ThreadDetailResponse,
@@ -13,6 +16,13 @@ import {
 } from '@/types/thread';
 import { PortfolioReadiness } from '@/types/portfolio';
 import { BriefingResponse, TodayDashboardResponse } from '@/types/dashboard';
+import {
+  DispatchNotificationsResponse,
+  EvaluateNotificationRulesResponse,
+  NotificationRuleResponse,
+  ProviderConnectionResponse,
+  ResetConnectionImportsResponse,
+} from '@/types/settings';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
@@ -129,6 +139,105 @@ export class ThreadKeeperClient {
 
   async getBriefing(): Promise<BriefingResponse> {
     const response = await this.client.get<BriefingResponse>('/dashboard/briefing');
+    return response.data;
+  }
+
+  // --- notification rules and events (Screen D) ---
+
+  async listNotificationRules(): Promise<NotificationRuleResponse[]> {
+    const response = await this.client.get<NotificationRuleResponse[]>('/notification-rules');
+    return response.data;
+  }
+
+  async createNotificationRule(data: {
+    ruleType: NotificationRuleType;
+    enabled: boolean;
+    channel: NotificationChannel;
+    thresholdMinutes: number | null;
+    scheduledTime: string | null;
+    configJson: string;
+  }): Promise<NotificationRuleResponse> {
+    const response = await this.client.post<NotificationRuleResponse>('/notification-rules', data);
+    return response.data;
+  }
+
+  async updateNotificationRule(
+    ruleId: number,
+    data: {
+      enabled: boolean;
+      channel: NotificationChannel;
+      thresholdMinutes: number | null;
+      scheduledTime: string | null;
+      configJson: string;
+    },
+  ): Promise<NotificationRuleResponse> {
+    const response = await this.client.patch<NotificationRuleResponse>(
+      `/notification-rules/${ruleId}`,
+      data,
+    );
+    return response.data;
+  }
+
+  async deleteNotificationRule(ruleId: number): Promise<void> {
+    await this.client.delete(`/notification-rules/${ruleId}`);
+  }
+
+  async listNotificationEvents(): Promise<NotificationEventResponse[]> {
+    const response = await this.client.get<NotificationEventResponse[]>('/notification-events');
+    return response.data;
+  }
+
+  async evaluateNotificationRules(): Promise<EvaluateNotificationRulesResponse> {
+    const response = await this.client.post<EvaluateNotificationRulesResponse>(
+      '/notification-events/evaluate',
+    );
+    return response.data;
+  }
+
+  async dispatchNotifications(): Promise<DispatchNotificationsResponse> {
+    const response = await this.client.post<DispatchNotificationsResponse>(
+      '/notification-events/dispatch',
+    );
+    return response.data;
+  }
+
+  // --- provider connections (Screen E) ---
+
+  async listProviderConnections(): Promise<ProviderConnectionResponse[]> {
+    const response = await this.client.get<ProviderConnectionResponse[]>('/provider-connections');
+    return response.data;
+  }
+
+  async createProviderConnection(data: {
+    provider: ProviderType;
+    accountLabel: string;
+    homePath: string;
+  }): Promise<ProviderConnectionResponse> {
+    const response = await this.client.post<ProviderConnectionResponse>('/provider-connections', data);
+    return response.data;
+  }
+
+  async runProviderImport(
+    connectionId: number,
+    data: {
+      migratorPath: string;
+      bridgePath?: string;
+      profile?: string;
+      target?: string;
+      includeSensitive: boolean;
+    },
+  ): Promise<unknown[]> {
+    const response = await this.client.post<unknown[]>(
+      `/provider-connections/${connectionId}/imports/run`,
+      data,
+    );
+    return response.data;
+  }
+
+  async resetConnectionImports(connectionId: number): Promise<ResetConnectionImportsResponse> {
+    const response = await this.client.delete<ResetConnectionImportsResponse>(
+      `/provider-connections/${connectionId}/imports`,
+    );
     return response.data;
   }
 

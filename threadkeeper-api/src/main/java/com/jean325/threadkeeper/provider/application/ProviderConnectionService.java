@@ -59,7 +59,10 @@ public class ProviderConnectionService {
     public List<ProviderConnectionResponse> listConnections() {
         return providerConnectionRepository.findAll()
                 .stream()
-                .map(ProviderConnectionResponse::from)
+                .map(connection -> ProviderConnectionResponse.from(
+                        connection,
+                        sourceSessionRepository.countByProviderConnectionId(connection.getId())
+                ))
                 .toList();
     }
 

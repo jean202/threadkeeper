@@ -10,9 +10,14 @@ public record ProviderConnectionResponse(
         String homePath,
         String status,
         Instant lastImportAt,
-        String lastErrorMessage
+        String lastErrorMessage,
+        long importedSessionCount
 ) {
     public static ProviderConnectionResponse from(ProviderConnection connection) {
+        return from(connection, 0L);
+    }
+
+    public static ProviderConnectionResponse from(ProviderConnection connection, long importedSessionCount) {
         return new ProviderConnectionResponse(
                 connection.getId(),
                 connection.getProvider().name(),
@@ -20,7 +25,8 @@ public record ProviderConnectionResponse(
                 connection.getHomePath(),
                 connection.getStatus().name(),
                 connection.getLastImportAt(),
-                connection.getLastErrorMessage()
+                connection.getLastErrorMessage(),
+                importedSessionCount
         );
     }
 }

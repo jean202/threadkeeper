@@ -59,6 +59,25 @@ public class NotificationRule extends BaseEntity {
         this.configJson = configJson == null || configJson.isBlank() ? "{}" : configJson;
     }
 
+    /**
+     * Replaces the rule's settings. The rule type is fixed for the life of the
+     * rule -- changing it would silently repurpose the events already recorded
+     * against it.
+     */
+    public void update(
+            boolean enabled,
+            NotificationChannel channel,
+            Integer thresholdMinutes,
+            String scheduledTime,
+            String configJson
+    ) {
+        this.enabled = enabled;
+        this.channel = channel;
+        this.thresholdMinutes = thresholdMinutes;
+        this.scheduledTime = scheduledTime;
+        this.configJson = configJson == null || configJson.isBlank() ? "{}" : configJson;
+    }
+
     public Long getId() {
         return id;
     }
