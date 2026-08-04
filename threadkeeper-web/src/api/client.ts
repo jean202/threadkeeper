@@ -1,9 +1,39 @@
 import axios, { AxiosInstance } from 'axios';
-import { ThreadDetailResponse, ThreadResponse } from '@/types/thread';
+import {
+  HandoffResponse,
+  ProviderType,
+  SnapshotType,
+  ThreadDetailResponse,
+  ThreadPriority,
+  ThreadResponse,
+  ThreadSnapshotResponse,
+  ThreadStatus,
+} from '@/types/thread';
 import { PortfolioReadiness } from '@/types/portfolio';
 import { BriefingResponse, TodayDashboardResponse } from '@/types/dashboard';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+
+/** Mirrors global/error/ApiErrorResponse.java. */
+interface ApiErrorResponse {
+  code: string;
+  message: string;
+  fieldErrors: { field: string; reason: string }[] | null;
+}
+
+/**
+ * Turns an API failure into something worth showing a user. The API reports
+ * validation problems per field, so surface those rather than a bare 400.
+ */
+export function describeApiError(error: unknown, fallback: string): string {
+  if (!axios.isAxiosError(error)) {
+    return error instanceof Error ? error.message : fallback;
+  }
+  const data = error.response?.data as ApiErrorResponse | undefined;
+  if (!data) return error.message || fallback;
+  const fields = data.fieldErrors?.map((f) => `${f.field}: ${f.reason}`) ?? [];
+  return fields.length > 0 ? `${data.message} (${fields.join('; ')})` : data.message || fallback;
+}
 
 export class ThreadKeeperClient {
   private client: AxiosInstance;
@@ -30,7 +60,7 @@ export class ThreadKeeperClient {
   async createThread(data: {
     projectKey: string;
     title: string;
-    priority: string;
+    priority: ThreadPriority;
     originalIntent: string;
     todayGoal: string;
     doneCondition: string;
@@ -39,8 +69,24 @@ export class ThreadKeeperClient {
     return response.data;
   }
 
-  async updateThreadStatus(threadId: number, status: string): Promise<ThreadResponse> {
+  async updateThreadStatus(threadId: number, status: ThreadStatus): Promise<ThreadResponse> {
     const response = await this.client.patch<ThreadResponse>(`/threads/${threadId}/status`, { status });
+    return response.data;
+  }
+
+  async createSnapshot(
+    threadId: number,
+    data: { snapshotType: SnapshotType; summary: string; nextAction?: string; blockers?: string },
+  ): Promise<ThreadSnapshotResponse> {
+    const response = await this.client.post<ThreadSnapshotResponse>(`/threads/${threadId}/snapshots`, data);
+    return response.data;
+  }
+
+  async generateHandoffDraft(
+    threadId: number,
+    data: { targetProvider: ProviderType; reasonHint?: string; sourceSessionId?: number },
+  ): Promise<HandoffResponse> {
+    const response = await this.client.post<HandoffResponse>(`/threads/${threadId}/handoffs/draft`, data);
     return response.data;
   }
 
