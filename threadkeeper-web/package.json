@@ -5,9 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
-  "description": "Planned Next.js dashboard for:",
+  "description": "Next.js dashboard for ThreadKeeper.",
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -19,5 +23,15 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
+    "@vitejs/plugin-react": "^6.0.5",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.0",
+    "jsdom": "^30.0.1",
+    "vitest": "^3.2.7"
   }
 }

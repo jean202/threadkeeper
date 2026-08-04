@@ -92,7 +92,7 @@ export default function ThreadDetail() {
       <section style={{ marginBottom: '30px' }}>
         <h2>Goals & Context</h2>
         <p><strong>Original Intent:</strong> {thread.originalIntent}</p>
-        <p><strong>Today's Goal:</strong> {thread.todayGoal ?? '—'}</p>
+        <p><strong>Today&apos;s Goal:</strong> {thread.todayGoal ?? '—'}</p>
         <p><strong>Done Condition:</strong> {thread.doneCondition ?? '—'}</p>
         <p><strong>Next Action:</strong> {thread.currentNextAction ?? '—'}</p>
       </section>
