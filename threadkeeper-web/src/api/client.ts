@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { ThreadDetailResponse, ThreadResponse } from '@/types/thread';
 import { PortfolioReadiness } from '@/types/portfolio';
+import { BriefingResponse, TodayDashboardResponse } from '@/types/dashboard';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
@@ -47,6 +48,16 @@ export class ThreadKeeperClient {
     const response = await this.client.patch<ThreadResponse>(`/threads/${threadId}/next-action`, {
       currentNextAction,
     });
+    return response.data;
+  }
+
+  async getTodayDashboard(): Promise<TodayDashboardResponse> {
+    const response = await this.client.get<TodayDashboardResponse>('/dashboard/today');
+    return response.data;
+  }
+
+  async getBriefing(): Promise<BriefingResponse> {
+    const response = await this.client.get<BriefingResponse>('/dashboard/briefing');
     return response.data;
   }
 

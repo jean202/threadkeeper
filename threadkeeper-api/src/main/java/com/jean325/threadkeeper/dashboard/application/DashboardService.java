@@ -1,6 +1,7 @@
 package com.jean325.threadkeeper.dashboard.application;
 
 import com.jean325.threadkeeper.dashboard.dto.BriefingResponse;
+import com.jean325.threadkeeper.dashboard.dto.DashboardThread;
 import com.jean325.threadkeeper.dashboard.dto.TodayDashboardResponse;
 import com.jean325.threadkeeper.thread.domain.DriftStatus;
 import com.jean325.threadkeeper.thread.domain.Thread;
@@ -28,54 +29,55 @@ public class DashboardService {
     }
 
     public TodayDashboardResponse today() {
+        Instant now = Instant.now();
         List<Thread> allThreads = threadRepository.findAllByOrderByLastActivityAtDesc();
-        List<BriefingResponse.BriefingThread> ranked = rankActiveThreads(allThreads);
-        List<String> active = ranked.stream().map(BriefingResponse.BriefingThread::title).toList();
-        List<String> stale = ranked.stream()
+        List<DashboardThread> active = rankActiveThreads(allThreads);
+        List<DashboardThread> stale = active.stream()
                 .filter(thread -> "STALE".equals(thread.resumeReason()))
-                .map(BriefingResponse.BriefingThread::title)
                 .toList();
-        List<String> blocked = allThreads.stream()
+        List<DashboardThread> blocked = allThreads.stream()
                 .filter(thread -> thread.getStatus() == ThreadStatus.BLOCKED || thread.getDriftStatus() == DriftStatus.BLOCKED)
-                .map(Thread::getTitle)
+                .map(thread -> toDashboardThread(thread, now))
                 .toList();
-        List<String> completedToday = allThreads.stream()
+        Instant startOfToday = ZonedDateTime.now(SEOUL).toLocalDate().atStartOfDay(SEOUL).toInstant();
+        List<DashboardThread> completedToday = allThreads.stream()
                 .filter(thread -> thread.getStatus() == ThreadStatus.COMPLETED)
                 .filter(thread -> thread.getCompletedAt() != null)
-                .filter(thread -> thread.getCompletedAt().isAfter(ZonedDateTime.now(SEOUL).toLocalDate().atStartOfDay(SEOUL).toInstant()))
-                .map(Thread::getTitle)
+                .filter(thread -> thread.getCompletedAt().isAfter(startOfToday))
+                .map(thread -> toDashboardThread(thread, now))
                 .toList();
 
         return new TodayDashboardResponse(active, stale, blocked, completedToday, active);
     }
 
     public BriefingResponse briefing() {
-        List<BriefingResponse.BriefingThread> ranked = rankActiveThreads(threadRepository.findAllByOrderByLastActivityAtDesc());
+        List<DashboardThread> ranked = rankActiveThreads(threadRepository.findAllByOrderByLastActivityAtDesc());
         String headline = ranked.isEmpty()
                 ? "No active threads to resume"
                 : "Resume the highest-signal threads first";
         return new BriefingResponse(headline, ranked.stream().limit(5).toList());
     }
 
-    private List<BriefingResponse.BriefingThread> rankActiveThreads(List<Thread> allThreads) {
+    private List<DashboardThread> rankActiveThreads(List<Thread> allThreads) {
         Instant now = Instant.now();
         return allThreads.stream()
                 .filter(thread -> thread.getStatus() == ThreadStatus.ACTIVE)
-                .map(thread -> toBriefingThread(thread, now))
-                .sorted(Comparator.comparingInt(BriefingResponse.BriefingThread::score).reversed()
-                        .thenComparing(BriefingResponse.BriefingThread::lastActivityAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(thread -> toDashboardThread(thread, now))
+                .sorted(Comparator.comparingInt(DashboardThread::score).reversed()
+                        .thenComparing(DashboardThread::lastActivityAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
     }
 
-    private BriefingResponse.BriefingThread toBriefingThread(Thread thread, Instant now) {
+    private DashboardThread toDashboardThread(Thread thread, Instant now) {
         long staleMinutes = computeStaleMinutes(thread, now);
         boolean missingNextAction = thread.getCurrentNextAction() == null || thread.getCurrentNextAction().isBlank();
         String resumeReason = inferResumeReason(thread, staleMinutes, missingNextAction);
         int score = score(thread, staleMinutes, missingNextAction);
-        return new BriefingResponse.BriefingThread(
+        return new DashboardThread(
                 thread.getId(),
                 thread.getTitle(),
                 thread.getPriority().name(),
+                thread.getStatus().name(),
                 thread.getDriftStatus().name(),
                 thread.getCurrentNextAction(),
                 resumeReason,
@@ -93,7 +95,12 @@ public class DashboardService {
     }
 
     private String inferResumeReason(Thread thread, long staleMinutes, boolean missingNextAction) {
-        if (thread.getDriftStatus() == DriftStatus.BLOCKED) {
+        if (thread.getStatus() == ThreadStatus.COMPLETED || thread.getDriftStatus() == DriftStatus.COMPLETED) {
+            return "COMPLETED";
+        }
+        // Match how the blocked list itself is selected, otherwise a thread whose
+        // status is BLOCKED reports "READY" in the blocked section.
+        if (thread.getStatus() == ThreadStatus.BLOCKED || thread.getDriftStatus() == DriftStatus.BLOCKED) {
             return "BLOCKED";
         }
         if (thread.getDriftStatus() == DriftStatus.DRIFTING) {

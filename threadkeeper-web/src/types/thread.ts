@@ -70,7 +70,7 @@ export interface NotificationEventResponse {
   createdAt: string;
 }
 
-/** GET /threads -- the list projection, deliberately narrower than the detail record. */
+/** GET /threads -- the list projection; narrower than the detail record, which also carries the related collections. */
 export interface ThreadResponse {
   id: number;
   projectKey: string;
@@ -78,9 +78,13 @@ export interface ThreadResponse {
   status: ThreadStatus;
   priority: ThreadPriority;
   originalIntent: string;
+  todayGoal: string | null;
+  doneCondition: string | null;
   currentNextAction: string | null;
   driftStatus: DriftStatus;
   lastActivityAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
 }
 
 /** GET /threads/{id} -- adds the goal fields, timestamps, and the related collections. */

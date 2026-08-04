@@ -1,52 +1,114 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
-import { ThreadResponse } from '@/types/thread';
+import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
+
+const RESUME_REASON_LABEL: Record<DashboardThread['resumeReason'], string> = {
+  COMPLETED: 'Completed',
+  BLOCKED: 'Blocked',
+  DRIFTING: 'Drifting from original intent',
+  STALE: 'Untouched for a while',
+  MISSING_NEXT_ACTION: 'No next action recorded',
+  HIGH_PRIORITY: 'High priority',
+  READY: 'Ready to continue',
+};
+
+function formatStaleness(minutes: number): string {
+  // DashboardService sends Long.MAX_VALUE for threads that never recorded activity.
+  if (!Number.isFinite(minutes) || minutes > 60 * 24 * 365) return 'no activity yet';
+  if (minutes < 60) return `${minutes}m idle`;
+  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}h idle`;
+  return `${Math.floor(minutes / (60 * 24))}d idle`;
+}
+
+function ThreadRow({ thread }: { thread: DashboardThread }) {
+  return (
+    <li style={{ marginBottom: '12px' }}>
+      <Link href={`/threads/${thread.threadId}`}>
+        <strong>{thread.title}</strong>
+      </Link>{' '}
+      <span>
+        [{thread.priority}] {RESUME_REASON_LABEL[thread.resumeReason] ?? thread.resumeReason} ·{' '}
+        {formatStaleness(thread.staleMinutes)}
+      </span>
+      <div>Next action: {thread.nextAction ?? '— not set —'}</div>
+    </li>
+  );
+}
+
+function Section({ title, threads }: { title: string; threads: DashboardThread[] }) {
+  return (
+    <section style={{ marginBottom: '30px' }}>
+      <h2>
+        {title} ({threads.length})
+      </h2>
+      {threads.length === 0 ? (
+        <p>None</p>
+      ) : (
+        <ul>
+          {threads.map((thread) => (
+            <ThreadRow key={thread.threadId} thread={thread} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 export default function Today() {
-  const [threads, setThreads] = useState<ThreadResponse[]>([]);
+  const [dashboard, setDashboard] = useState<TodayDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadThreads = async () => {
+    const load = async () => {
       try {
-        const data = await threadKeeperClient.listThreads();
-        setThreads(data.filter((t) => t.status !== 'COMPLETED'));
+        setDashboard(await threadKeeperClient.getTodayDashboard());
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load the dashboard');
       } finally {
         setLoading(false);
       }
     };
 
-    loadThreads();
+    load();
   }, []);
 
-  if (loading) return <div>Loading today's threads...</div>;
+  if (loading) return <div>Loading today&apos;s dashboard...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!dashboard) return <div>No dashboard data</div>;
+
+  // The server ranks by priority, drift, and staleness -- the first entry is the
+  // one thread to resume if you only have time for one.
+  const continueNow = dashboard.recommendedOrder[0] ?? null;
 
   return (
     <div style={{ padding: '20px' }}>
       <Link href="/">← Back</Link>
       <h1>Today</h1>
-      <div style={{ marginTop: '20px' }}>
-        {threads.length === 0 ? (
-          <p>No active threads</p>
+
+      <section style={{ marginBottom: '30px' }}>
+        <h2>Continue Now</h2>
+        {!continueNow ? (
+          <p>Nothing active to resume.</p>
         ) : (
-          <ul>
-            {threads.map((thread) => (
-              <li key={thread.id} style={{ marginBottom: '10px' }}>
-                <div>
-                  <strong>{thread.title}</strong>
-                  {/* The list projection carries no todayGoal -- originalIntent is what
-                      GET /threads actually returns, so show that until the dashboard
-                      endpoints get wired up. */}
-                  <p>Original Intent: {thread.originalIntent}</p>
-                  <p>Next Action: {thread.currentNextAction ?? 'N/A'}</p>
-                  <Link href={`/threads/${thread.id}`}>View Details</Link>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div>
+            <Link href={`/threads/${continueNow.threadId}`}>
+              <strong>{continueNow.title}</strong>
+            </Link>
+            <p>
+              Why: {RESUME_REASON_LABEL[continueNow.resumeReason] ?? continueNow.resumeReason} ·{' '}
+              {formatStaleness(continueNow.staleMinutes)}
+            </p>
+            <p>Next action: {continueNow.nextAction ?? '— not set —'}</p>
+          </div>
         )}
-      </div>
+      </section>
+
+      <Section title="Active" threads={dashboard.activeThreads} />
+      <Section title="Stale" threads={dashboard.staleThreads} />
+      <Section title="Blocked" threads={dashboard.blockedThreads} />
+      <Section title="Completed Today" threads={dashboard.completedToday} />
     </div>
   );
 }

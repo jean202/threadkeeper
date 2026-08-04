@@ -10,9 +10,13 @@ public record ThreadResponse(
         String status,
         String priority,
         String originalIntent,
+        String todayGoal,
+        String doneCondition,
         String currentNextAction,
         String driftStatus,
-        Instant lastActivityAt
+        Instant lastActivityAt,
+        Instant completedAt,
+        Instant createdAt
 ) {
     public static ThreadResponse from(Thread thread) {
         return new ThreadResponse(
@@ -22,9 +26,13 @@ public record ThreadResponse(
                 thread.getStatus().name(),
                 thread.getPriority().name(),
                 thread.getOriginalIntent(),
+                thread.getTodayGoal(),
+                thread.getDoneCondition(),
                 thread.getCurrentNextAction(),
                 thread.getDriftStatus().name(),
-                thread.getLastActivityAt()
+                thread.getLastActivityAt(),
+                thread.getCompletedAt(),
+                thread.getCreatedAt()
         );
     }
 }
