@@ -4,6 +4,7 @@ import com.jean325.threadkeeper.handoff.application.HandoffService;
 import com.jean325.threadkeeper.handoff.dto.CreateHandoffRequest;
 import com.jean325.threadkeeper.handoff.dto.GenerateHandoffDraftRequest;
 import com.jean325.threadkeeper.handoff.dto.HandoffResponse;
+import com.jean325.threadkeeper.handoff.dto.UpdateHandoffRequest;
 import com.jean325.threadkeeper.handoff.dto.UpdateHandoffStatusRequest;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -47,6 +48,14 @@ public class HandoffController {
             @Valid @RequestBody GenerateHandoffDraftRequest request
     ) {
         return handoffService.generateDraft(threadId, request);
+    }
+
+    @PatchMapping("/api/v1/handoffs/{handoffId}")
+    public HandoffResponse updateHandoff(
+            @PathVariable Long handoffId,
+            @Valid @RequestBody UpdateHandoffRequest request
+    ) {
+        return handoffService.updateHandoff(handoffId, request);
     }
 
     @PatchMapping("/api/v1/handoffs/{handoffId}/status")

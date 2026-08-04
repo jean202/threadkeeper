@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import {
   HandoffResponse,
+  HandoffStatus,
   ProviderType,
   SnapshotType,
   ThreadDetailResponse,
@@ -79,6 +80,22 @@ export class ThreadKeeperClient {
     data: { snapshotType: SnapshotType; summary: string; nextAction?: string; blockers?: string },
   ): Promise<ThreadSnapshotResponse> {
     const response = await this.client.post<ThreadSnapshotResponse>(`/threads/${threadId}/snapshots`, data);
+    return response.data;
+  }
+
+  async updateHandoff(
+    handoffId: number,
+    data: {
+      targetProvider: ProviderType;
+      reason: string | null;
+      whatChanged: string | null;
+      blockers: string | null;
+      nextAction: string | null;
+      filesNote: string | null;
+      status?: HandoffStatus;
+    },
+  ): Promise<HandoffResponse> {
+    const response = await this.client.patch<HandoffResponse>(`/handoffs/${handoffId}`, data);
     return response.data;
   }
 

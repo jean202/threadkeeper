@@ -25,6 +25,125 @@ class HandoffControllerTest {
     private MockMvc mockMvc;
 
     @Test
+    void editsHandoffBodyAndFinalizesInOneCall() throws Exception {
+        createThreadWithDraft();
+
+        // Save Draft: body is rewritten, status left alone.
+        mockMvc.perform(patch("/api/v1/handoffs/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "targetProvider": "CODEX",
+                                  "reason": "Hand implementation to Codex",
+                                  "whatChanged": "Reworked the composer.",
+                                  "blockers": "None left.",
+                                  "nextAction": "Run the migration.",
+                                  "filesNote": "src/pages/threads"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.targetProvider").value("CODEX"))
+                .andExpect(jsonPath("$.reason").value("Hand implementation to Codex"))
+                .andExpect(jsonPath("$.whatChanged").value("Reworked the composer."))
+                .andExpect(jsonPath("$.blockers").value("None left."))
+                .andExpect(jsonPath("$.nextAction").value("Run the migration."))
+                .andExpect(jsonPath("$.filesNote").value("src/pages/threads"));
+
+        // Finalize: same endpoint, status supplied.
+        mockMvc.perform(patch("/api/v1/handoffs/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "targetProvider": "CODEX",
+                                  "reason": "Hand implementation to Codex",
+                                  "whatChanged": "Reworked the composer.",
+                                  "blockers": "None left.",
+                                  "nextAction": "Run the migration.",
+                                  "filesNote": "src/pages/threads",
+                                  "status": "READY"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("READY"));
+
+        // The edit is persisted, not just echoed back.
+        mockMvc.perform(get("/api/v1/threads/1/handoffs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("READY"))
+                .andExpect(jsonPath("$[0].nextAction").value("Run the migration."));
+    }
+
+    @Test
+    void clearingAnOptionalHandoffFieldPersistsAsCleared() throws Exception {
+        createThreadWithDraft();
+
+        mockMvc.perform(patch("/api/v1/handoffs/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "targetProvider": "CLAUDE",
+                                  "reason": null,
+                                  "whatChanged": "Only this survives.",
+                                  "blockers": null,
+                                  "nextAction": null,
+                                  "filesNote": null
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reason").doesNotExist())
+                .andExpect(jsonPath("$.blockers").doesNotExist())
+                .andExpect(jsonPath("$.whatChanged").value("Only this survives."));
+    }
+
+    @Test
+    void rejectsAnUnknownHandoff() throws Exception {
+        mockMvc.perform(patch("/api/v1/handoffs/999")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetProvider": "CLAUDE"}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("HANDOFF_NOT_FOUND"));
+    }
+
+    @Test
+    void rejectsAHandoffEditWithoutATargetProvider() throws Exception {
+        createThreadWithDraft();
+
+        mockMvc.perform(patch("/api/v1/handoffs/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reason": "no provider"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("targetProvider"));
+    }
+
+    private void createThreadWithDraft() throws Exception {
+        mockMvc.perform(post("/api/v1/threads")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "projectKey": "threadkeeper",
+                                  "title": "Composer thread",
+                                  "priority": "MEDIUM",
+                                  "originalIntent": "Edit a handoff from the composer.",
+                                  "todayGoal": "Wire save and finalize.",
+                                  "doneCondition": "Edits persist."
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/threads/1/handoffs/draft")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetProvider": "CLAUDE"}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void createsAndUpdatesHandoff() throws Exception {
         mockMvc.perform(post("/api/v1/threads")
                         .contentType(MediaType.APPLICATION_JSON)
