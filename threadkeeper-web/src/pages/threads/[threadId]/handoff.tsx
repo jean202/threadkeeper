@@ -2,7 +2,23 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
-import { ThreadDetailResponse } from '@/types/thread';
+import { HandoffResponse, ThreadDetailResponse } from '@/types/thread';
+
+/** Flattens the handoff's structured fields into the one editable text block. */
+function renderDraft(handoff: HandoffResponse): string {
+  return [
+    `Target provider: ${handoff.targetProvider}`,
+    `Reason: ${handoff.reason ?? ''}`,
+    '',
+    `What changed:\n${handoff.whatChanged ?? ''}`,
+    '',
+    `Blockers:\n${handoff.blockers ?? ''}`,
+    '',
+    `Next action:\n${handoff.nextAction ?? ''}`,
+    '',
+    `Files:\n${handoff.filesNote ?? ''}`,
+  ].join('\n');
+}
 
 export default function HandoffDraft() {
   const router = useRouter();
@@ -19,7 +35,7 @@ export default function HandoffDraft() {
         const data = await threadKeeperClient.getThread(Number(threadId));
         setThread(data);
         if (data.handoffs.length > 0) {
-          setDraftContent(data.handoffs[0].draftContent);
+          setDraftContent(renderDraft(data.handoffs[0]));
         }
       } finally {
         setLoading(false);
@@ -40,8 +56,8 @@ export default function HandoffDraft() {
       <div style={{ marginBottom: '20px' }}>
         <h3>Context</h3>
         <p><strong>Original Intent:</strong> {thread.originalIntent}</p>
-        <p><strong>Today's Goal:</strong> {thread.todayGoal}</p>
-        <p><strong>Done Condition:</strong> {thread.doneCondition}</p>
+        <p><strong>Today's Goal:</strong> {thread.todayGoal ?? '—'}</p>
+        <p><strong>Done Condition:</strong> {thread.doneCondition ?? '—'}</p>
         <p><strong>Current Status:</strong> {thread.status}</p>
       </div>
 
@@ -61,8 +77,11 @@ export default function HandoffDraft() {
       </div>
 
       <div>
-        <button style={{ marginRight: '10px', padding: '10px 20px' }}>Save Draft</button>
-        <button style={{ padding: '10px 20px' }}>Finalize Handoff</button>
+        {/* Not wired to the API yet -- disabled so the page cannot imply a save
+            that never happens. */}
+        <button disabled style={{ marginRight: '10px', padding: '10px 20px' }}>Save Draft</button>
+        <button disabled style={{ padding: '10px 20px' }}>Finalize Handoff</button>
+        <p>Saving is not connected to the API yet; edits here are not persisted.</p>
       </div>
     </div>
   );

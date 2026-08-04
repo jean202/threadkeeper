@@ -35,8 +35,11 @@ export default function Today() {
               <li key={thread.id} style={{ marginBottom: '10px' }}>
                 <div>
                   <strong>{thread.title}</strong>
-                  <p>Today Goal: {thread.todayGoal || 'N/A'}</p>
-                  <p>Next Action: {thread.currentNextAction || 'N/A'}</p>
+                  {/* The list projection carries no todayGoal -- originalIntent is what
+                      GET /threads actually returns, so show that until the dashboard
+                      endpoints get wired up. */}
+                  <p>Original Intent: {thread.originalIntent}</p>
+                  <p>Next Action: {thread.currentNextAction ?? 'N/A'}</p>
                   <Link href={`/threads/${thread.id}`}>View Details</Link>
                 </div>
               </li>

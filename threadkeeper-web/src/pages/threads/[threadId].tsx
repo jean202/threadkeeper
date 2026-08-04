@@ -60,9 +60,9 @@ export default function ThreadDetail() {
       <section style={{ marginBottom: '30px' }}>
         <h2>Goals & Context</h2>
         <p><strong>Original Intent:</strong> {thread.originalIntent}</p>
-        <p><strong>Today's Goal:</strong> {thread.todayGoal}</p>
-        <p><strong>Done Condition:</strong> {thread.doneCondition}</p>
-        <p><strong>Next Action:</strong> {thread.currentNextAction}</p>
+        <p><strong>Today's Goal:</strong> {thread.todayGoal ?? '—'}</p>
+        <p><strong>Done Condition:</strong> {thread.doneCondition ?? '—'}</p>
+        <p><strong>Next Action:</strong> {thread.currentNextAction ?? '—'}</p>
       </section>
 
       <section style={{ marginBottom: '30px' }}>
@@ -73,7 +73,8 @@ export default function ThreadDetail() {
           <ul>
             {thread.sourceSessions.map((session) => (
               <li key={session.id}>
-                {session.title} ({session.sourceType})
+                {session.title ?? session.providerSessionKey} ({session.provider}
+                {session.sourceType ? ` / ${session.sourceType}` : ''})
               </li>
             ))}
           </ul>
@@ -89,6 +90,7 @@ export default function ThreadDetail() {
             {thread.snapshots.map((snapshot) => (
               <li key={snapshot.id}>
                 {snapshot.snapshotType} - {new Date(snapshot.createdAt).toLocaleString()}
+                <div>{snapshot.summary}</div>
               </li>
             ))}
           </ul>
@@ -105,10 +107,11 @@ export default function ThreadDetail() {
         ) : (
           <div>
             <p><strong>Status:</strong> {latestHandoff.status}</p>
-            <p><strong>Draft:</strong> {latestHandoff.draftContent.substring(0, 100)}...</p>
-            {latestHandoff.finalContent && (
-              <p><strong>Final:</strong> {latestHandoff.finalContent.substring(0, 100)}...</p>
-            )}
+            <p><strong>Target Provider:</strong> {latestHandoff.targetProvider}</p>
+            <p><strong>Reason:</strong> {latestHandoff.reason ?? '—'}</p>
+            <p><strong>What Changed:</strong> {latestHandoff.whatChanged ?? '—'}</p>
+            <p><strong>Blockers:</strong> {latestHandoff.blockers ?? '—'}</p>
+            <p><strong>Next Action:</strong> {latestHandoff.nextAction ?? '—'}</p>
             <Link href={`/threads/${thread.id}/handoff`}>View/Edit Handoff</Link>
           </div>
         )}
@@ -122,7 +125,8 @@ export default function ThreadDetail() {
           <ul>
             {thread.notificationEvents.slice(0, 5).map((event) => (
               <li key={event.id}>
-                {event.ruleType} - {new Date(event.createdAt).toLocaleString()}
+                {event.eventType} ({event.channel} / {event.deliveryStatus}) -{' '}
+                {new Date(event.createdAt).toLocaleString()}
               </li>
             ))}
           </ul>
