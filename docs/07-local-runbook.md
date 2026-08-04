@@ -180,9 +180,47 @@ curl -sS -X POST http://localhost:8080/api/v1/notification-events/dispatch
 
 If webhook delivery succeeds, queued events move to `SENT`.
 
+## 9-1. Drift Detection
+
+Drift is recomputed automatically whenever a thread's activity changes -- a new
+snapshot, or an import -- and can be triggered directly:
+
+```bash
+curl -sS -X POST http://localhost:8080/api/v1/threads/1/drift-evaluation
+```
+
+The score is the share of the original intent's terms that no longer appear in
+recent activity, so `100` means nothing of the original wording survives:
+
+```json
+{
+  "threadId": 1,
+  "conclusive": true,
+  "driftScore": 100.00,
+  "driftStatus": "DRIFTING",
+  "explanation": "0 of 5 intent terms still present in recent activity."
+}
+```
+
+`conclusive` is `false` when there is nothing to compare yet -- a thread with no
+recorded activity, or an intent made only of stop words. The stored status is
+left untouched in that case, so a new thread is never reported as drifting.
+
+Tunable via environment variables:
+
+- `THREADKEEPER_DRIFT_ENABLED` (default `true`)
+- `THREADKEEPER_DRIFT_THRESHOLD` (default `60`) -- score at or above which a thread is `DRIFTING`
+- `THREADKEEPER_DRIFT_RECENT_SNAPSHOTS` (default `3`)
+- `THREADKEEPER_DRIFT_RECENT_SESSIONS` (default `5`)
+
+Because only the most recent snapshots count, returning to the original topic
+clears the warning on the next evaluation.
+
 ## 10. Current Gaps
 
 - no auth or admin guard around manual evaluation and dispatch endpoints yet
 - daily briefing still uses simple `HH:mm` equality instead of a richer recurrence model
 - drift alert dedupe is fixed at a 60 minute window for now
 - thread merge heuristics are still basic compared with real multi-session workflows
+- drift scoring is lexical, so it does not recognise synonyms or verb tenses
+  ("implement" and "implemented" are different terms)

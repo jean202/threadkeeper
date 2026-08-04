@@ -1,6 +1,7 @@
 package com.jean325.threadkeeper.thread.dto;
 
 import com.jean325.threadkeeper.thread.domain.Thread;
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public record ThreadResponse(
@@ -14,6 +15,7 @@ public record ThreadResponse(
         String doneCondition,
         String currentNextAction,
         String driftStatus,
+        BigDecimal driftScore,
         Instant lastActivityAt,
         Instant completedAt,
         Instant createdAt
@@ -30,6 +32,7 @@ public record ThreadResponse(
                 thread.getDoneCondition(),
                 thread.getCurrentNextAction(),
                 thread.getDriftStatus().name(),
+                thread.getDriftScore(),
                 thread.getLastActivityAt(),
                 thread.getCompletedAt(),
                 thread.getCreatedAt()

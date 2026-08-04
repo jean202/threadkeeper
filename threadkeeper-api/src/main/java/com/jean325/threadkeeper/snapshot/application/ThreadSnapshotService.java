@@ -1,5 +1,6 @@
 package com.jean325.threadkeeper.snapshot.application;
 
+import com.jean325.threadkeeper.drift.application.DriftService;
 import com.jean325.threadkeeper.global.error.ApiException;
 import com.jean325.threadkeeper.snapshot.domain.ThreadSnapshot;
 import com.jean325.threadkeeper.snapshot.domain.ThreadSnapshotRepository;
@@ -17,10 +18,16 @@ public class ThreadSnapshotService {
 
     private final ThreadSnapshotRepository threadSnapshotRepository;
     private final ThreadRepository threadRepository;
+    private final DriftService driftService;
 
-    public ThreadSnapshotService(ThreadSnapshotRepository threadSnapshotRepository, ThreadRepository threadRepository) {
+    public ThreadSnapshotService(
+            ThreadSnapshotRepository threadSnapshotRepository,
+            ThreadRepository threadRepository,
+            DriftService driftService
+    ) {
         this.threadSnapshotRepository = threadSnapshotRepository;
         this.threadRepository = threadRepository;
+        this.driftService = driftService;
     }
 
     @Transactional(readOnly = true)
@@ -44,6 +51,10 @@ public class ThreadSnapshotService {
                 request.driftScore(),
                 request.driftStatus()
         );
-        return ThreadSnapshotResponse.from(threadSnapshotRepository.save(snapshot));
+        ThreadSnapshot saved = threadSnapshotRepository.save(snapshot);
+        // A new snapshot is new evidence of what the thread is doing, so the
+        // drift verdict is stale the moment it lands.
+        driftService.evaluate(thread);
+        return ThreadSnapshotResponse.from(saved);
     }
 }

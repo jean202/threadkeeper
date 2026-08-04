@@ -79,6 +79,7 @@ public class DashboardService {
                 thread.getPriority().name(),
                 thread.getStatus().name(),
                 thread.getDriftStatus().name(),
+                thread.getDriftScore(),
                 thread.getCurrentNextAction(),
                 resumeReason,
                 staleMinutes,

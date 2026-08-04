@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import {
+  DriftEvaluationResponse,
   HandoffResponse,
   HandoffStatus,
   ProviderType,
@@ -72,6 +73,13 @@ export class ThreadKeeperClient {
 
   async updateThreadStatus(threadId: number, status: ThreadStatus): Promise<ThreadResponse> {
     const response = await this.client.patch<ThreadResponse>(`/threads/${threadId}/status`, { status });
+    return response.data;
+  }
+
+  async evaluateDrift(threadId: number): Promise<DriftEvaluationResponse> {
+    const response = await this.client.post<DriftEvaluationResponse>(
+      `/threads/${threadId}/drift-evaluation`,
+    );
     return response.data;
   }
 

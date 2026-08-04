@@ -1,5 +1,6 @@
 package com.jean325.threadkeeper.provider.application;
 
+import com.jean325.threadkeeper.drift.application.DriftService;
 import com.jean325.threadkeeper.global.error.ApiException;
 import com.jean325.threadkeeper.provider.domain.ProviderConnection;
 import com.jean325.threadkeeper.provider.domain.ProviderConnectionRepository;
@@ -21,7 +22,9 @@ import com.jean325.threadkeeper.thread.domain.Thread;
 import com.jean325.threadkeeper.thread.domain.ThreadPriority;
 import com.jean325.threadkeeper.thread.domain.ThreadRepository;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,19 +37,22 @@ public class ProviderConnectionService {
     private final SourceSessionRepository sourceSessionRepository;
     private final ThreadSnapshotRepository threadSnapshotRepository;
     private final BridgeImportClient bridgeImportClient;
+    private final DriftService driftService;
 
     public ProviderConnectionService(
             ProviderConnectionRepository providerConnectionRepository,
             ThreadRepository threadRepository,
             SourceSessionRepository sourceSessionRepository,
             ThreadSnapshotRepository threadSnapshotRepository,
-            BridgeImportClient bridgeImportClient
+            BridgeImportClient bridgeImportClient,
+            DriftService driftService
     ) {
         this.providerConnectionRepository = providerConnectionRepository;
         this.threadRepository = threadRepository;
         this.sourceSessionRepository = sourceSessionRepository;
         this.threadSnapshotRepository = threadSnapshotRepository;
         this.bridgeImportClient = bridgeImportClient;
+        this.driftService = driftService;
     }
 
     @Transactional(readOnly = true)
@@ -74,6 +80,17 @@ public class ProviderConnectionService {
                 .map(item -> importSingle(connection, item))
                 .toList();
         connection.markImported();
+
+        // An import is the main way a thread's activity changes, so re-judge
+        // drift once per affected thread rather than once per session.
+        Map<Long, Thread> touchedThreads = new LinkedHashMap<>();
+        for (SourceSession session : imported) {
+            if (session.getThread() != null) {
+                touchedThreads.putIfAbsent(session.getThread().getId(), session.getThread());
+            }
+        }
+        touchedThreads.values().forEach(driftService::evaluate);
+
         return imported.stream().map(SourceSessionResponse::from).toList();
     }
 

@@ -5,6 +5,7 @@ import { describeApiError, threadKeeperClient } from '@/api/client';
 import { ProviderType, ThreadDetailResponse } from '@/types/thread';
 import { PortfolioReadiness } from '@/types/portfolio';
 import PortfolioReadinessBadge from '@/components/PortfolioReadinessBadge';
+import DriftWarning from '@/components/DriftWarning';
 
 const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
 
@@ -78,7 +79,10 @@ export default function ThreadDetail() {
         <h2>Overview</h2>
         <p><strong>Status:</strong> {thread.status}</p>
         <p><strong>Priority:</strong> {thread.priority}</p>
-        <p><strong>Drift Status:</strong> {thread.driftStatus}</p>
+        <p>
+          <strong>Drift:</strong>{' '}
+          <DriftWarning driftStatus={thread.driftStatus} driftScore={thread.driftScore} />
+        </p>
         {readiness && (
           <p><strong>Portfolio:</strong> <PortfolioReadinessBadge readiness={readiness} /></p>
         )}
@@ -168,6 +172,15 @@ export default function ThreadDetail() {
             disabled={busy !== null}
           >
             {busy === 'create the handoff draft' ? 'Creating...' : 'Create Handoff'}
+          </button>
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <button
+            onClick={() => runAction('re-evaluate drift', () => threadKeeperClient.evaluateDrift(id))}
+            disabled={busy !== null}
+          >
+            {busy === 're-evaluate drift' ? 'Evaluating...' : 'Re-evaluate Drift'}
           </button>
         </div>
 

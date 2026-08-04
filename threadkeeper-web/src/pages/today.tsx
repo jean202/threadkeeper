@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
 import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
+import DriftWarning from '@/components/DriftWarning';
 
 const RESUME_REASON_LABEL: Record<DashboardThread['resumeReason'], string> = {
   COMPLETED: 'Completed',
@@ -31,6 +32,11 @@ function ThreadRow({ thread }: { thread: DashboardThread }) {
         [{thread.priority}] {RESUME_REASON_LABEL[thread.resumeReason] ?? thread.resumeReason} ·{' '}
         {formatStaleness(thread.staleMinutes)}
       </span>
+      {thread.driftStatus === 'DRIFTING' && (
+        <div>
+          <DriftWarning driftStatus={thread.driftStatus} driftScore={thread.driftScore} />
+        </div>
+      )}
       <div>Next action: {thread.nextAction ?? '— not set —'}</div>
     </li>
   );

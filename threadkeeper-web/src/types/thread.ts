@@ -70,6 +70,16 @@ export interface NotificationEventResponse {
   createdAt: string;
 }
 
+/** POST /threads/{id}/drift-evaluation -- mirrors drift/dto/DriftEvaluationResponse.java. */
+export interface DriftEvaluationResponse {
+  threadId: number;
+  /** False when there was not enough activity to judge; the stored status is left alone. */
+  conclusive: boolean;
+  driftScore: number | null;
+  driftStatus: DriftStatus;
+  explanation: string;
+}
+
 /** GET /threads -- the list projection; narrower than the detail record, which also carries the related collections. */
 export interface ThreadResponse {
   id: number;
@@ -82,6 +92,8 @@ export interface ThreadResponse {
   doneCondition: string | null;
   currentNextAction: string | null;
   driftStatus: DriftStatus;
+  /** 0-100; null until there is enough activity to compare against the intent. */
+  driftScore: number | null;
   lastActivityAt: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -99,6 +111,7 @@ export interface ThreadDetailResponse {
   doneCondition: string | null;
   currentNextAction: string | null;
   driftStatus: DriftStatus;
+  driftScore: number | null;
   lastActivityAt: string | null;
   completedAt: string | null;
   createdAt: string;

@@ -28,6 +28,11 @@ threadkeeper:
       dispatch-delay-ms: ${THREADKEEPER_NOTIFICATION_DISPATCH_DELAY_MS:30000}
     discord:
       webhook-url: ${THREADKEEPER_DISCORD_WEBHOOK_URL:}
+  drift:
+    enabled: ${THREADKEEPER_DRIFT_ENABLED:true}
+    threshold: ${THREADKEEPER_DRIFT_THRESHOLD:60}
+    recent-snapshots: ${THREADKEEPER_DRIFT_RECENT_SNAPSHOTS:3}
+    recent-sessions: ${THREADKEEPER_DRIFT_RECENT_SESSIONS:5}
   portfolio:
     enabled: ${THREADKEEPER_PORTFOLIO_ENABLED:false}
     json-path: ${THREADKEEPER_PORTFOLIO_JSON_PATH:}

@@ -1,5 +1,6 @@
 package com.jean325.threadkeeper.dashboard.dto;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -13,6 +14,7 @@ public record DashboardThread(
         String priority,
         String status,
         String driftStatus,
+        BigDecimal driftScore,
         String nextAction,
         String resumeReason,
         long staleMinutes,

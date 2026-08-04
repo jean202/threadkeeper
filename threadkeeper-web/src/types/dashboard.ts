@@ -17,6 +17,7 @@ export interface DashboardThread {
   priority: ThreadPriority;
   status: ThreadStatus;
   driftStatus: DriftStatus;
+  driftScore: number | null;
   nextAction: string | null;
   resumeReason: ResumeReason;
   staleMinutes: number;
