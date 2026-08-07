@@ -10,6 +10,23 @@ Current local flow:
 4. let the notification scheduler evaluate rules and dispatch queued notifications
 5. manually trigger evaluation or dispatch only when needed
 
+## 1-1. Network Exposure
+
+There is no authentication. ThreadKeeper is a single-user local tool, so every
+component listens on loopback only and is unreachable from the network:
+
+- API: `server.address` is `127.0.0.1` (`THREADKEEPER_BIND_ADDRESS` overrides)
+- Web: `next dev` / `next start` run with `-H 127.0.0.1`
+- Postgres: published as `127.0.0.1:5432:5432`, since it uses the default
+  development credentials
+
+Both `http://localhost:3000` and `http://127.0.0.1:3000` are accepted as
+browser origins; `threadkeeper.web.allowed-origins` overrides that list.
+
+Only widen `THREADKEEPER_BIND_ADDRESS` if you have put an authenticating proxy
+in front — the API grants full read and write access, including the manual
+evaluation and dispatch endpoints, to anyone who can reach it.
+
 ## 2. Start API
 
 From `threadkeeper-api`:

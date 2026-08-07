@@ -8,7 +8,9 @@ services:
       POSTGRES_PASSWORD: threadkeeper
       POSTGRES_DB: threadkeeper
     ports:
-      - "5432:5432"
+      # Loopback only. "5432:5432" would publish the database on every
+      # interface, and it uses the default development credentials.
+      - "127.0.0.1:5432:5432"
     volumes:
       - threadkeeper-postgres-data:/var/lib/postgresql/data
     healthcheck:
