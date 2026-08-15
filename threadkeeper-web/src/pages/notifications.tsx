@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { threadKeeperClient } from '@/api/client';
 import NavBar from '@/components/NavBar';
-import { NotificationEventResponse } from '@/types/thread';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 import {
   CreateNotificationRuleRequest,
   NotificationChannel,
@@ -154,47 +155,34 @@ function RuleRow({
 }
 
 export default function Notifications() {
-  const [rules, setRules] = useState<NotificationRuleResponse[]>([]);
-  const [events, setEvents] = useState<NotificationEventResponse[]>([]);
   const [statusFilter, setStatusFilter] = useState<NotificationDeliveryStatus | 'ALL'>('ALL');
   const [newRule, setNewRule] = useState<CreateNotificationRuleRequest>(EMPTY_NEW_RULE);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const reload = async () => {
-    const [ruleData, eventData] = await Promise.all([
-      threadKeeperClient.listNotificationRules(),
-      threadKeeperClient.listNotificationEvents(),
-    ]);
-    setRules(ruleData);
-    setEvents(eventData);
-  };
+  const { data, error: loadError, loading, failures, retrying, reload } = useAsyncResource(
+    async () => {
+      const [rules, events] = await Promise.all([
+        threadKeeperClient.listNotificationRules(),
+        threadKeeperClient.listNotificationEvents(),
+      ]);
+      return { rules, events };
+    },
+  );
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        await reload();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load notification settings');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, []);
+  const rules = data?.rules ?? [];
+  const events = data?.events ?? [];
 
   const runAction = async (action: () => Promise<string>) => {
     setBusy(true);
-    setError(null);
+    setActionError(null);
     setMessage(null);
     try {
       setMessage(await action());
-      await reload();
+      reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      setActionError(err instanceof Error ? err.message : 'Request failed');
     } finally {
       setBusy(false);
     }
@@ -230,8 +218,6 @@ export default function Notifications() {
       return `${result.dispatchedCount}건을 발송했습니다.`;
     });
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
-
   const visibleEvents =
     statusFilter === 'ALL'
       ? events
@@ -243,7 +229,11 @@ export default function Notifications() {
       <h1>알림 · 규칙</h1>
 
       {message && <p style={{ color: '#047857' }}>{message}</p>}
-      {error && <p style={{ color: '#b91c1c' }}>{error}</p>}
+      {actionError && <p style={{ color: '#b91c1c' }}>{actionError}</p>}
+      {loadError && (
+        <LoadError error={loadError} failures={failures} retrying={retrying} onRetry={reload} />
+      )}
+      {loading && <p>Loading...</p>}
 
       <section style={{ marginBottom: '20px' }}>
         <h2>규칙 ({rules.length})</h2>

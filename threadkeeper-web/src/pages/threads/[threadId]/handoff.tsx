@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
-import { HandoffResponse, ProviderType, ThreadDetailResponse } from '@/types/thread';
+import { HandoffResponse, ProviderType } from '@/types/thread';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 import { formatTimestamp } from '@/lib/format';
 
 const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
@@ -45,36 +47,38 @@ function orNull(value: string): string | null {
 export default function HandoffComposer() {
   const router = useRouter();
   const { threadId } = router.query;
-  const [thread, setThread] = useState<ThreadDetailResponse | null>(null);
+  // router.query is empty on the very first render of a dynamic route.
+  const ready = typeof threadId === 'string';
+
+  const {
+    data: thread,
+    error: loadError,
+    loading,
+    failures,
+    retrying,
+    reload,
+  } = useAsyncResource(
+    () => threadKeeperClient.getThread(Number(threadId)),
+    [threadId],
+    ready,
+  );
+
   const [handoffs, setHandoffs] = useState<HandoffResponse[]>([]);
   const [fields, setFields] = useState<ComposerFields>(EMPTY_FIELDS);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
+  // Seed the composer once the thread arrives, and again after a manual reload.
   useEffect(() => {
-    if (!threadId) return;
-
-    const load = async () => {
-      try {
-        const data = await threadKeeperClient.getThread(Number(threadId));
-        setThread(data);
-        setHandoffs(data.handoffs);
-        if (data.handoffs.length > 0) {
-          setFields(toFields(data.handoffs[0]));
-        } else {
-          setFields((current) => ({ ...current, nextAction: data.currentNextAction ?? '' }));
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load thread');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, [threadId]);
+    if (!thread) return;
+    setHandoffs(thread.handoffs);
+    if (thread.handoffs.length > 0) {
+      setFields(toFields(thread.handoffs[0]));
+    } else {
+      setFields((current) => ({ ...current, nextAction: thread.currentNextAction ?? '' }));
+    }
+  }, [thread]);
 
   const refresh = async (id: number) => {
     setHandoffs(await threadKeeperClient.listHandoffs(id));
@@ -82,20 +86,28 @@ export default function HandoffComposer() {
 
   const runAction = async (action: () => Promise<void>, successMessage: string) => {
     setBusy(true);
-    setError(null);
+    setActionError(null);
     setMessage(null);
     try {
       await action();
       setMessage(successMessage);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      setActionError(err instanceof Error ? err.message : 'Request failed');
     } finally {
       setBusy(false);
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
-  if (!thread) return <div style={{ padding: '20px' }}>Thread not found</div>;
+  if (loadError) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Link href="/">← Back</Link>
+        <LoadError error={loadError} failures={failures} retrying={retrying} onRetry={reload} />
+      </div>
+    );
+  }
+
+  if (loading || !thread) return <div style={{ padding: '20px' }}>Loading...</div>;
 
   const threadIdNumber = thread.id;
 
@@ -188,7 +200,7 @@ export default function HandoffComposer() {
           </button>
         </div>
         {message && <p style={{ color: '#047857', marginTop: '10px' }}>{message}</p>}
-        {error && <p style={{ color: '#b91c1c', marginTop: '10px' }}>{error}</p>}
+        {actionError && <p style={{ color: '#b91c1c', marginTop: '10px' }}>{actionError}</p>}
       </section>
 
       <section>

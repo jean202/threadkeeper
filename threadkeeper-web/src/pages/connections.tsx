@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { threadKeeperClient } from '@/api/client';
 import NavBar from '@/components/NavBar';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 import { ProviderType } from '@/types/thread';
 import {
   CreateProviderConnectionRequest,
@@ -192,63 +194,50 @@ function ConnectionCard({
 }
 
 export default function Connections() {
-  const [connections, setConnections] = useState<ProviderConnectionResponse[]>([]);
-  const [latestByConnection, setLatestByConnection] = useState<Map<number, LatestImportResponse>>(
-    new Map(),
-  );
   const [newConnection, setNewConnection] =
     useState<CreateProviderConnectionRequest>(EMPTY_NEW_CONNECTION);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const reload = async () => {
-    const connectionData = await threadKeeperClient.listProviderConnections();
-    setConnections(connectionData);
+  const { data, error: loadError, loading, failures, retrying, reload } = useAsyncResource(
+    async () => {
+      const connections = await threadKeeperClient.listProviderConnections();
 
-    // One import summary per connection; a single failure must not blank the whole page.
-    const summaries = await Promise.all(
-      connectionData.map(async (connection) => {
-        try {
-          return await threadKeeperClient.getLatestImport(connection.id);
-        } catch {
-          return null;
-        }
-      }),
-    );
-    setLatestByConnection(
-      new Map(
-        summaries
-          .filter((summary): summary is LatestImportResponse => summary !== null)
-          .map((summary) => [summary.connectionId, summary]),
-      ),
-    );
-  };
+      // One import summary per connection; a single failure must not blank the whole page.
+      const summaries = await Promise.all(
+        connections.map(async (connection) => {
+          try {
+            return await threadKeeperClient.getLatestImport(connection.id);
+          } catch {
+            return null;
+          }
+        }),
+      );
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        await reload();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load provider connections');
-      } finally {
-        setLoading(false);
-      }
-    };
+      return {
+        connections,
+        latestByConnection: new Map(
+          summaries
+            .filter((summary): summary is LatestImportResponse => summary !== null)
+            .map((summary) => [summary.connectionId, summary]),
+        ),
+      };
+    },
+  );
 
-    load();
-  }, []);
+  const connections = data?.connections ?? [];
+  const latestByConnection = data?.latestByConnection ?? new Map<number, LatestImportResponse>();
 
   const runAction = async (action: () => Promise<string>) => {
     setBusy(true);
-    setError(null);
+    setActionError(null);
     setMessage(null);
     try {
       setMessage(await action());
-      await reload();
+      reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      setActionError(err instanceof Error ? err.message : 'Request failed');
     } finally {
       setBusy(false);
     }
@@ -291,15 +280,17 @@ export default function Connections() {
     });
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
-
   return (
     <div style={{ padding: '20px' }}>
       <NavBar current="/connections" />
       <h1>프로바이더 연결</h1>
 
       {message && <p style={{ color: '#047857' }}>{message}</p>}
-      {error && <p style={{ color: '#b91c1c' }}>{error}</p>}
+      {actionError && <p style={{ color: '#b91c1c' }}>{actionError}</p>}
+      {loadError && (
+        <LoadError error={loadError} failures={failures} retrying={retrying} onRetry={reload} />
+      )}
+      {loading && <p>Loading...</p>}
 
       <section style={{ marginBottom: '20px' }}>
         <h2>연결 ({connections.length})</h2>

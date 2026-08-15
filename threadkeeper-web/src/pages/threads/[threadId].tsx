@@ -1,44 +1,40 @@
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
-import { ThreadDetailResponse, HandoffResponse } from '@/types/thread';
-import { PortfolioReadiness } from '@/types/portfolio';
 import PortfolioReadinessBadge from '@/components/PortfolioReadinessBadge';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 
 export default function ThreadDetail() {
   const router = useRouter();
   const { threadId } = router.query;
-  const [thread, setThread] = useState<ThreadDetailResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [readiness, setReadiness] = useState<PortfolioReadiness | undefined>(undefined);
+  // router.query is empty on the very first render of a dynamic route.
+  const ready = typeof threadId === 'string';
 
-  useEffect(() => {
-    if (!threadId) return;
+  const { data, error, loading, failures, retrying, reload } = useAsyncResource(
+    async () => {
+      const [thread, readinessMap] = await Promise.all([
+        threadKeeperClient.getThread(Number(threadId)),
+        threadKeeperClient.getPortfolioReadiness(),
+      ]);
+      return { thread, readiness: readinessMap.get(thread.projectKey) };
+    },
+    [threadId],
+    ready,
+  );
 
-    const loadThread = async () => {
-      try {
-        const [data, readinessMap] = await Promise.all([
-          threadKeeperClient.getThread(Number(threadId)),
-          threadKeeperClient.getPortfolioReadiness(),
-        ]);
-        setThread(data);
-        setReadiness(readinessMap.get(data.projectKey));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load thread');
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (error) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Link href="/">← Back</Link>
+        <LoadError error={error} failures={failures} retrying={retrying} onRetry={reload} />
+      </div>
+    );
+  }
 
-    loadThread();
-  }, [threadId]);
+  if (loading || !data) return <div style={{ padding: '20px' }}>Loading...</div>;
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!thread) return <div>Thread not found</div>;
-
+  const { thread, readiness } = data;
   const latestHandoff = thread.handoffs.length > 0 ? thread.handoffs[0] : null;
 
   return (
