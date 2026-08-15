@@ -8,6 +8,9 @@ log() {
   echo "[$(date '+%F %T')] $*"
 }
 
+# Trim the logs before this run starts appending to them.
+"$PROJECT_DIR/scripts/rotate-logs.sh" || log "log rotation failed, continuing"
+
 export NVM_DIR="$HOME/.nvm"
 # shellcheck disable=SC1091
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"

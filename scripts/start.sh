@@ -15,6 +15,9 @@ if [ -f .env ]; then
   set +a
 fi
 
+# Trim the logs before this run starts appending to them.
+"$PROJECT_DIR/scripts/rotate-logs.sh" || log "log rotation failed, continuing"
+
 log "waiting for docker daemon (up to 180s)..."
 for _ in $(seq 1 90); do
   if docker info >/dev/null 2>&1; then
