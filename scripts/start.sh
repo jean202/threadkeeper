@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="/Users/jean325/portfolio/projects/threadkeeper"
+# Derive the repo root from this script's own location so the script works from
+# any checkout. THREADKEEPER_DIR still overrides it if you keep the code
+# somewhere else.
+PROJECT_DIR="${THREADKEEPER_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$PROJECT_DIR"
 
 log() {

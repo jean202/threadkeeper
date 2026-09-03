@@ -7,6 +7,7 @@ import com.jean325.threadkeeper.handoff.domain.HandoffStatus;
 import com.jean325.threadkeeper.handoff.dto.CreateHandoffRequest;
 import com.jean325.threadkeeper.handoff.dto.GenerateHandoffDraftRequest;
 import com.jean325.threadkeeper.handoff.dto.HandoffResponse;
+import com.jean325.threadkeeper.handoff.dto.UpdateHandoffRequest;
 import com.jean325.threadkeeper.handoff.dto.UpdateHandoffStatusRequest;
 import com.jean325.threadkeeper.notification.application.NotificationEventService;
 import com.jean325.threadkeeper.notification.domain.NotificationRuleType;
@@ -102,6 +103,24 @@ public class HandoffService {
                 HandoffStatus.DRAFT
         );
         return HandoffResponse.from(handoffRepository.save(handoff));
+    }
+
+    @Transactional
+    public HandoffResponse updateHandoff(Long handoffId, UpdateHandoffRequest request) {
+        Handoff handoff = handoffRepository.findById(handoffId)
+                .orElseThrow(() -> new ApiException("HANDOFF_NOT_FOUND", "The requested handoff does not exist.", HttpStatus.NOT_FOUND));
+        handoff.updateContent(
+                request.targetProvider(),
+                request.reason(),
+                request.whatChanged(),
+                request.blockers(),
+                request.nextAction(),
+                request.filesNote()
+        );
+        if (request.status() != null) {
+            handoff.updateStatus(request.status());
+        }
+        return HandoffResponse.from(handoff);
     }
 
     @Transactional

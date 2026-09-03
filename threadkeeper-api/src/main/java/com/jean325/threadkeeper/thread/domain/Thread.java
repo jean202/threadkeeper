@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -51,6 +52,10 @@ public class Thread extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private DriftStatus driftStatus;
+
+    /** Null until drift has been evaluated with enough activity to compare. */
+    @Column(precision = 5, scale = 2)
+    private BigDecimal driftScore;
 
     private Instant lastActivityAt;
 
@@ -119,6 +124,26 @@ public class Thread extends BaseEntity {
         return driftStatus;
     }
 
+    public BigDecimal getDriftScore() {
+        return driftScore;
+    }
+
+    /**
+     * Records a computed drift result. Status-owned states win: a completed or
+     * blocked thread keeps saying so, because those describe the thread itself
+     * rather than how far it has wandered.
+     */
+    public void applyDriftEvaluation(BigDecimal driftScore, DriftStatus evaluatedStatus) {
+        this.driftScore = driftScore;
+        if (status == ThreadStatus.COMPLETED) {
+            this.driftStatus = DriftStatus.COMPLETED;
+        } else if (status == ThreadStatus.BLOCKED) {
+            this.driftStatus = DriftStatus.BLOCKED;
+        } else {
+            this.driftStatus = evaluatedStatus;
+        }
+    }
+
     public Instant getLastActivityAt() {
         return lastActivityAt;
     }
@@ -133,6 +158,12 @@ public class Thread extends BaseEntity {
         if (status == ThreadStatus.COMPLETED) {
             this.completedAt = Instant.now();
             this.driftStatus = DriftStatus.COMPLETED;
+        } else if (status == ThreadStatus.BLOCKED) {
+            this.driftStatus = DriftStatus.BLOCKED;
+        } else if (driftStatus == DriftStatus.COMPLETED || driftStatus == DriftStatus.BLOCKED) {
+            // Reopening leaves the thread in a state drift can speak about again;
+            // the next evaluation replaces this.
+            this.driftStatus = DriftStatus.ON_TRACK;
         }
     }
 

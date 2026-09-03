@@ -1,6 +1,8 @@
 package com.jean325.threadkeeper.notification.api;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,6 +24,118 @@ class NotificationRuleControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Test
+    void disablesARuleWithoutDeletingIt() throws Exception {
+        createInactivityRule();
+
+        mockMvc.perform(patch("/api/v1/notification-rules/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "enabled": false,
+                                  "channel": "DESKTOP",
+                                  "thresholdMinutes": 120,
+                                  "scheduledTime": null,
+                                  "configJson": "{}"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.channel").value("DESKTOP"))
+                .andExpect(jsonPath("$.thresholdMinutes").value(120))
+                // The rule type is fixed for the life of the rule.
+                .andExpect(jsonPath("$.ruleType").value("INACTIVITY"));
+
+        mockMvc.perform(get("/api/v1/notification-rules"))
+                .andExpect(jsonPath("$[0].enabled").value(false));
+    }
+
+    @Test
+    void aDisabledRuleStopsQueueingNotifications() throws Exception {
+        createThread();
+        createInactivityRule();
+
+        // Enabled and past its threshold, the rule queues.
+        mockMvc.perform(post("/api/v1/notification-events/evaluate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.queuedCount").value(1));
+
+        mockMvc.perform(patch("/api/v1/notification-rules/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"enabled": false, "channel": "DISCORD", "thresholdMinutes": 0, "configJson": "{}"}
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/notification-events/evaluate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.queuedCount").value(0));
+    }
+
+    @Test
+    void deletingARuleAlsoDropsItsRecordedEvents() throws Exception {
+        createThread();
+        createInactivityRule();
+        mockMvc.perform(post("/api/v1/notification-events/evaluate"))
+                .andExpect(jsonPath("$.queuedCount").value(1));
+
+        mockMvc.perform(delete("/api/v1/notification-rules/1"))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/notification-rules"))
+                .andExpect(jsonPath("$").isEmpty());
+        // Events reference their rule, so they must go too rather than leaving a
+        // dangling foreign key.
+        mockMvc.perform(get("/api/v1/notification-events"))
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void rejectsUpdatingOrDeletingAnUnknownRule() throws Exception {
+        mockMvc.perform(patch("/api/v1/notification-rules/999")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"enabled": true, "channel": "DISCORD", "configJson": "{}"}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOTIFICATION_RULE_NOT_FOUND"));
+
+        mockMvc.perform(delete("/api/v1/notification-rules/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    private void createThread() throws Exception {
+        mockMvc.perform(post("/api/v1/threads")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "projectKey": "threadkeeper",
+                                  "title": "Rule target",
+                                  "priority": "MEDIUM",
+                                  "originalIntent": "Something to notify about.",
+                                  "todayGoal": "Move it.",
+                                  "doneCondition": "Done."
+                                }
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    private void createInactivityRule() throws Exception {
+        mockMvc.perform(post("/api/v1/notification-rules")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ruleType": "INACTIVITY",
+                                  "enabled": true,
+                                  "channel": "DISCORD",
+                                  "thresholdMinutes": 0,
+                                  "scheduledTime": null,
+                                  "configJson": "{}"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+    }
 
     @Test
     void createsNotificationRule() throws Exception {

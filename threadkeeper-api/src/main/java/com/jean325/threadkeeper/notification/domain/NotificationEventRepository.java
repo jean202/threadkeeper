@@ -10,4 +10,5 @@ public interface NotificationEventRepository extends JpaRepository<NotificationE
     List<NotificationEvent> findAllByDeliveryStatusOrderByCreatedAtAsc(NotificationDeliveryStatus deliveryStatus);
     List<NotificationEvent> findAllByThreadIdOrderByCreatedAtDesc(Long threadId);
     boolean existsByThreadAndRuleAndCreatedAtAfter(Thread thread, NotificationRule rule, Instant createdAt);
+    void deleteAllByRuleId(Long ruleId);
 }

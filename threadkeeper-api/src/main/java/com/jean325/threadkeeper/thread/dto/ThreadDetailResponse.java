@@ -5,6 +5,7 @@ import com.jean325.threadkeeper.notification.dto.NotificationEventResponse;
 import com.jean325.threadkeeper.snapshot.dto.ThreadSnapshotResponse;
 import com.jean325.threadkeeper.source.dto.SourceSessionResponse;
 import com.jean325.threadkeeper.thread.domain.Thread;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -19,6 +20,7 @@ public record ThreadDetailResponse(
         String doneCondition,
         String currentNextAction,
         String driftStatus,
+        BigDecimal driftScore,
         Instant lastActivityAt,
         Instant completedAt,
         Instant createdAt,
@@ -45,6 +47,7 @@ public record ThreadDetailResponse(
                 thread.getDoneCondition(),
                 thread.getCurrentNextAction(),
                 thread.getDriftStatus().name(),
+                thread.getDriftScore(),
                 thread.getLastActivityAt(),
                 thread.getCompletedAt(),
                 thread.getCreatedAt(),

@@ -1,3 +1,9 @@
+server:
+  # The API has no authentication: it is a single-user local tool, so it must
+  # not be reachable from the network. Binding to loopback is what keeps it
+  # private -- override only if you have put an authenticating proxy in front.
+  address: ${THREADKEEPER_BIND_ADDRESS:127.0.0.1}
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/threadkeeper
@@ -28,6 +34,11 @@ threadkeeper:
       dispatch-delay-ms: ${THREADKEEPER_NOTIFICATION_DISPATCH_DELAY_MS:30000}
     discord:
       webhook-url: ${THREADKEEPER_DISCORD_WEBHOOK_URL:}
+  drift:
+    enabled: ${THREADKEEPER_DRIFT_ENABLED:true}
+    threshold: ${THREADKEEPER_DRIFT_THRESHOLD:60}
+    recent-snapshots: ${THREADKEEPER_DRIFT_RECENT_SNAPSHOTS:3}
+    recent-sessions: ${THREADKEEPER_DRIFT_RECENT_SESSIONS:5}
   portfolio:
     enabled: ${THREADKEEPER_PORTFOLIO_ENABLED:false}
     json-path: ${THREADKEEPER_PORTFOLIO_JSON_PATH:}

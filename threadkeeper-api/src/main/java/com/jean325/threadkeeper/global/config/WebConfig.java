@@ -10,7 +10,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final String[] allowedOrigins;
 
-    public WebConfig(@Value("${threadkeeper.web.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+    // Both spellings of loopback: the browser's origin is whichever one the user
+    // typed, and http://127.0.0.1:3000 is otherwise rejected as cross-origin.
+    public WebConfig(
+            @Value("${threadkeeper.web.allowed-origins:http://localhost:3000,http://127.0.0.1:3000}")
+            String allowedOrigins
+    ) {
         this.allowedOrigins = allowedOrigins.split(",");
     }
 

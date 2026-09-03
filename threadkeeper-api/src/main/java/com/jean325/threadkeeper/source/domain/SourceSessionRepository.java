@@ -10,5 +10,6 @@ public interface SourceSessionRepository extends JpaRepository<SourceSession, Lo
     Optional<SourceSession> findByProviderConnectionIdAndProviderSessionKey(Long providerConnectionId, String providerSessionKey);
     List<SourceSession> findAllByProviderConnectionId(Long providerConnectionId);
     long countByThreadIdAndProviderConnectionIdNot(Long threadId, Long providerConnectionId);
+    long countByProviderConnectionId(Long providerConnectionId);
     void deleteAllByProviderConnectionId(Long providerConnectionId);
 }

@@ -1,5 +1,7 @@
 # ThreadKeeper
 
+[![CI](https://github.com/jean202/threadkeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/jean202/threadkeeper/actions/workflows/ci.yml)
+
 ThreadKeeper is a multi-agent session memory and handoff manager for AI-assisted work.
 
 It helps users keep track of:
@@ -27,3 +29,17 @@ ThreadKeeper is designed as a product layer above local state collectors such as
 - [threadkeeper-api](threadkeeper-api)
 - [threadkeeper-web](threadkeeper-web)
 - [agent-state-migrator-bridge](agent-state-migrator-bridge)
+
+## Checks
+
+CI runs on every push to `main` and every pull request:
+
+| Job | Runs |
+| --- | --- |
+| API | `./gradlew test` on JDK 17 (the version pinned in `build.gradle.kts`) |
+| Web | `npm ci`, typecheck, lint, test, build |
+| Bridge | `npm test` (`node --test`) |
+
+`e2e/smoke.mjs` is not part of CI: it needs postgres, the API and the web app
+running at once. Run it by hand as described in
+[threadkeeper-web/README.md](threadkeeper-web/README.md).

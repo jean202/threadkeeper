@@ -38,7 +38,7 @@ class AutomaticImportSchedulerTest {
     }
 
     private ProviderConnectionResponse connection(long id, String status, Instant lastImportAt) {
-        return new ProviderConnectionResponse(id, "CODEX", "default", "/home", status, lastImportAt, null);
+        return new ProviderConnectionResponse(id, "CODEX", "default", "/home", status, lastImportAt, null, 0L);
     }
 
     @Test

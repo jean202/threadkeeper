@@ -40,6 +40,13 @@ export default function Home() {
         <Link href="/today" style={{ marginRight: '10px' }}>
           Today
         </Link>
+        <Link href="/threads/new" style={{ marginRight: '10px' }}>
+          New Thread
+        </Link>
+        <Link href="/settings/notifications" style={{ marginRight: '10px' }}>
+          Notifications
+        </Link>
+        <Link href="/settings/providers">Providers</Link>
       </div>
       <h2>Threads</h2>
       {threads.length === 0 ? (

@@ -47,7 +47,12 @@ class ThreadControllerTest {
 
         mockMvc.perform(get("/api/v1/threads"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].title").value("Define MVP ingestion flow"));
+                .andExpect(jsonPath("$[0].title").value("Define MVP ingestion flow"))
+                // The list projection has to carry the goal fields; the Today screen
+                // reads them straight off this response.
+                .andExpect(jsonPath("$[0].todayGoal").value("Implement thread CRUD."))
+                .andExpect(jsonPath("$[0].doneCondition").value("Thread endpoints persist correctly."))
+                .andExpect(jsonPath("$[0].createdAt").exists());
     }
 
     @Test

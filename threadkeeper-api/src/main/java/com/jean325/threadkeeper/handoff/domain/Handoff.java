@@ -125,4 +125,25 @@ public class Handoff extends BaseEntity {
     public void updateStatus(HandoffStatus status) {
         this.status = status;
     }
+
+    /**
+     * Replaces the editable body of the handoff. The composer always submits the
+     * whole card, so every field is overwritten -- clearing one is a real edit,
+     * not a field the caller forgot to send.
+     */
+    public void updateContent(
+            ProviderType targetProvider,
+            String reason,
+            String whatChanged,
+            String blockers,
+            String nextAction,
+            String filesNote
+    ) {
+        this.targetProvider = targetProvider;
+        this.reason = reason;
+        this.whatChanged = whatChanged;
+        this.blockers = blockers;
+        this.nextAction = nextAction;
+        this.filesNote = filesNote;
+    }
 }
