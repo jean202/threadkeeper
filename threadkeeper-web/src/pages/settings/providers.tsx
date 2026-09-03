@@ -1,14 +1,13 @@
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { describeApiError, threadKeeperClient } from '@/api/client';
 import { ProviderType } from '@/types/thread';
-import { ProviderConnectionResponse } from '@/types/settings';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 
 const PROVIDERS: ProviderType[] = ['CODEX', 'CLAUDE', 'GEMINI', 'GPT'];
 
 export default function ProviderSettings() {
-  const [connections, setConnections] = useState<ProviderConnectionResponse[]>([]);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -19,22 +18,7 @@ export default function ProviderSettings() {
   const [migratorPath, setMigratorPath] = useState('');
   const [bridgePath, setBridgePath] = useState('');
 
-  const load = useCallback(async () => {
-    setConnections(await threadKeeperClient.listProviderConnections());
-  }, []);
-
-  useEffect(() => {
-    const run = async () => {
-      try {
-        await load();
-      } catch (err) {
-        setError(describeApiError(err, 'Failed to load provider connections'));
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [load]);
+  const resource = useAsyncResource(() => threadKeeperClient.listProviderConnections());
 
   const runAction = async (name: string, action: () => Promise<unknown>, done?: string) => {
     setBusy(name);
@@ -42,7 +26,7 @@ export default function ProviderSettings() {
     setNotice(null);
     try {
       const result = await action();
-      await load();
+      resource.reload();
       setNotice(typeof result === 'string' ? result : (done ?? null));
     } catch (err) {
       setError(describeApiError(err, `Failed to ${name}`));
@@ -60,7 +44,23 @@ export default function ProviderSettings() {
     );
   };
 
-  if (loading) return <div>Loading provider connections...</div>;
+  if (resource.loading) return <div>Loading provider connections...</div>;
+  if (!resource.data) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Link href="/">← Back</Link>
+        <h1>Provider Connections</h1>
+        <LoadError
+          error={resource.error ?? 'Failed to load provider connections'}
+          failures={resource.failures}
+          retrying={resource.retrying}
+          onRetry={resource.reload}
+        />
+      </div>
+    );
+  }
+
+  const connections = resource.data;
 
   return (
     <div style={{ padding: '20px', maxWidth: '760px' }}>

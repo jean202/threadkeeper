@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
 import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
 import DriftWarning from '@/components/DriftWarning';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 
 const RESUME_REASON_LABEL: Record<DashboardThread['resumeReason'], string> = {
   COMPLETED: 'Completed',
@@ -62,27 +63,26 @@ function Section({ title, threads }: { title: string; threads: DashboardThread[]
 }
 
 export default function Today() {
-  const [dashboard, setDashboard] = useState<TodayDashboardResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const resource = useAsyncResource<TodayDashboardResponse>(() =>
+    threadKeeperClient.getTodayDashboard(),
+  );
+  const dashboard = resource.data;
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setDashboard(await threadKeeperClient.getTodayDashboard());
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load the dashboard');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, []);
-
-  if (loading) return <div>Loading today&apos;s dashboard...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!dashboard) return <div>No dashboard data</div>;
+  if (resource.loading) return <div>Loading today&apos;s dashboard...</div>;
+  if (!dashboard) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Link href="/">← Back</Link>
+        <h1>Today</h1>
+        <LoadError
+          error={resource.error ?? 'Failed to load the dashboard'}
+          failures={resource.failures}
+          retrying={resource.retrying}
+          onRetry={resource.reload}
+        />
+      </div>
+    );
+  }
 
   // The server ranks by priority, drift, and staleness -- the first entry is the
   // one thread to resume if you only have time for one.
