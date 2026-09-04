@@ -27,6 +27,37 @@ Only widen `THREADKEEPER_BIND_ADDRESS` if you have put an authenticating proxy
 in front — the API grants full read and write access, including the manual
 evaluation and dispatch endpoints, to anyone who can reach it.
 
+## 1-2. Log Rotation
+
+The LaunchAgents append their stdout to `~/Library/Logs/threadkeeper`, which
+grows without limit. `scripts/rotate-logs.sh` caps that, and `start.sh` and
+`start-web.sh` both call it before handing stdout to the long-running process.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `THREADKEEPER_LOG_DIR` | `$HOME/Library/Logs/threadkeeper` | Where the `.log` files live |
+| `THREADKEEPER_LOG_MAX_BYTES` | `10485760` (10 MiB) | Rotate a log once it exceeds this |
+| `THREADKEEPER_LOG_KEEP` | `5` | Archives kept per log; older ones are pruned |
+
+A rotated log is **copied to a gzip archive and then truncated in place**, not
+renamed. launchd holds the file open in append mode, so renaming it would leave
+launchd writing into an archive nobody reads, and deleting it would silently
+discard every later line until the agent restarts. The cost is that a handful
+of lines written between the copy and the truncate are lost.
+
+Rotation only runs at boot. A machine left up for weeks keeps appending to one
+file until it next restarts; run the script by hand if you need it sooner:
+
+```bash
+./scripts/rotate-logs.sh
+```
+
+A rotation failure never blocks startup — the start scripts log it and carry
+on.
+
+`scripts/rotate-logs.test.sh` covers this, and CI runs it along with
+shellcheck.
+
 ## 2. Start API
 
 From `threadkeeper-api`:
@@ -243,3 +274,5 @@ clears the warning on the next evaluation.
 - thread merge heuristics are still basic compared with real multi-session workflows
 - drift scoring is lexical, so it does not recognise synonyms or verb tenses
   ("implement" and "implemented" are different terms)
+- log rotation runs only at boot, so a long-running machine keeps appending to
+  one file until it is restarted or the script is run by hand

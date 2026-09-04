@@ -83,6 +83,20 @@ jobs:
       - name: Build
         run: npm run build
 
+  scripts:
+    name: Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The shell scripts are what the LaunchAgents actually run at boot, so a
+      # break here is only noticed when the machine next restarts.
+      - name: Shellcheck
+        run: shellcheck scripts/*.sh
+
+      - name: Test log rotation
+        run: ./scripts/rotate-logs.test.sh
+
   bridge:
     name: Bridge
     runs-on: ubuntu-latest

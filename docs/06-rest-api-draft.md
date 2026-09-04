@@ -210,6 +210,39 @@ Return dashboard data.
 Clients resolve each id against `activeThreads` — the first id is the single
 thread to resume if there is only time for one.
 
+Each thread object carries `resumeReason`, which is why the thread is being
+surfaced: `COMPLETED`, `BLOCKED`, `DRIFTING`, `STALE`, `MISSING_NEXT_ACTION`,
+`HIGH_PRIORITY` or `READY`.
+
+`staleMinutes` is minutes since the last recorded activity. It is a number, not
+null: a thread that has never recorded activity reports `Long.MAX_VALUE`
+(`9223372036854775807`), so clients must treat an implausibly large value as
+"no activity yet" rather than rendering it as a duration.
+
+```json
+{
+  "activeThreads": [
+    {
+      "threadId": 1,
+      "title": "Wire the Today dashboard",
+      "priority": "HIGH",
+      "status": "ACTIVE",
+      "driftStatus": "ON_TRACK",
+      "driftScore": null,
+      "nextAction": "Implement source session import service.",
+      "resumeReason": "STALE",
+      "staleMinutes": 480,
+      "score": 70,
+      "lastActivityAt": "2026-06-25T02:00:00Z"
+    }
+  ],
+  "staleThreads": [],
+  "blockedThreads": [],
+  "completedToday": [],
+  "recommendedOrder": [1]
+}
+```
+
 ### `GET /api/v1/dashboard/briefing`
 
 Return a daily briefing payload.
