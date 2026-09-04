@@ -47,7 +47,10 @@ public class DashboardService {
                 .map(thread -> toDashboardThread(thread, now))
                 .toList();
 
-        return new TodayDashboardResponse(active, stale, blocked, completedToday, active);
+        // The ranking is the order of `active` itself, so send just the ids and
+        // let the client resolve them against activeThreads.
+        List<Long> recommendedOrder = active.stream().map(DashboardThread::threadId).toList();
+        return new TodayDashboardResponse(active, stale, blocked, completedToday, recommendedOrder);
     }
 
     public BriefingResponse briefing() {

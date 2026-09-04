@@ -52,7 +52,10 @@ public class NotificationRuleService {
 
     @Transactional
     public NotificationRuleResponse updateRule(Long ruleId, UpdateNotificationRuleRequest request) {
-        notificationRuleConfigParser.validate(request.configJson());
+        // An omitted config is not an empty config -- only validate what was sent.
+        if (request.configJson() != null) {
+            notificationRuleConfigParser.validate(request.configJson());
+        }
         NotificationRule rule = findRuleOrThrow(ruleId);
         rule.update(
                 request.enabled(),

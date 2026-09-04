@@ -173,14 +173,18 @@ export class ThreadKeeperClient {
     return response.data;
   }
 
+  /**
+   * PATCH is a partial update: send only the fields being changed, and the
+   * rest keep their stored values. Sending a field as null does not clear it.
+   */
   async updateNotificationRule(
     ruleId: number,
     data: {
-      enabled: boolean;
-      channel: NotificationChannel;
-      thresholdMinutes: number | null;
-      scheduledTime: string | null;
-      configJson: string;
+      enabled?: boolean;
+      channel?: NotificationChannel;
+      thresholdMinutes?: number;
+      scheduledTime?: string;
+      configJson?: string;
     },
   ): Promise<NotificationRuleResponse> {
     const response = await this.client.patch<NotificationRuleResponse>(

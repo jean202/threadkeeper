@@ -30,7 +30,11 @@ export interface TodayDashboardResponse {
   staleThreads: DashboardThread[];
   blockedThreads: DashboardThread[];
   completedToday: DashboardThread[];
-  recommendedOrder: DashboardThread[];
+  /**
+   * Thread ids in resume order. Every id appears in activeThreads -- the API
+   * sends ids rather than repeating the objects.
+   */
+  recommendedOrder: number[];
 }
 
 export interface BriefingResponse {

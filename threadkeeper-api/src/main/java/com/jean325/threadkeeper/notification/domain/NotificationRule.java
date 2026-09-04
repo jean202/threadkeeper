@@ -64,18 +64,33 @@ public class NotificationRule extends BaseEntity {
      * rule -- changing it would silently repurpose the events already recorded
      * against it.
      */
+    /**
+     * Applies a partial update: a null argument leaves that field as it is.
+     * Callers that mean to change one field send only that one.
+     */
     public void update(
-            boolean enabled,
+            Boolean enabled,
             NotificationChannel channel,
             Integer thresholdMinutes,
             String scheduledTime,
             String configJson
     ) {
-        this.enabled = enabled;
-        this.channel = channel;
-        this.thresholdMinutes = thresholdMinutes;
-        this.scheduledTime = scheduledTime;
-        this.configJson = configJson == null || configJson.isBlank() ? "{}" : configJson;
+        if (enabled != null) {
+            this.enabled = enabled;
+        }
+        if (channel != null) {
+            this.channel = channel;
+        }
+        if (thresholdMinutes != null) {
+            this.thresholdMinutes = thresholdMinutes;
+        }
+        if (scheduledTime != null) {
+            this.scheduledTime = scheduledTime;
+        }
+        if (configJson != null) {
+            // A blank body still means "no config", the same as on create.
+            this.configJson = configJson.isBlank() ? "{}" : configJson;
+        }
     }
 
     public Long getId() {

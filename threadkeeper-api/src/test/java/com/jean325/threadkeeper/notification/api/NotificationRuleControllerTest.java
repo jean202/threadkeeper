@@ -121,6 +121,101 @@ class NotificationRuleControllerTest {
                 .andExpect(status().isCreated());
     }
 
+    /**
+     * The point of the partial update: the settings screen flips one switch and
+     * sends one field. Anything it did not send has to survive untouched.
+     */
+    @Test
+    void togglingEnabledLeavesEveryOtherFieldAlone() throws Exception {
+        createInactivityRule();
+
+        mockMvc.perform(patch("/api/v1/notification-rules/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"enabled": false}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.channel").value("DISCORD"))
+                .andExpect(jsonPath("$.thresholdMinutes").value(0))
+                .andExpect(jsonPath("$.ruleType").value("INACTIVITY"));
+
+        mockMvc.perform(get("/api/v1/notification-rules"))
+                .andExpect(jsonPath("$[0].enabled").value(false))
+                .andExpect(jsonPath("$[0].channel").value("DISCORD"))
+                .andExpect(jsonPath("$[0].thresholdMinutes").value(0));
+    }
+
+    /**
+     * An omitted "enabled" used to arrive as a primitive false and silently
+     * disable the rule. Changing only the channel must not turn it off.
+     */
+    @Test
+    void omittingEnabledDoesNotDisableTheRule() throws Exception {
+        createInactivityRule();
+
+        mockMvc.perform(patch("/api/v1/notification-rules/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"channel": "DESKTOP"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(true))
+                .andExpect(jsonPath("$.channel").value("DESKTOP"));
+    }
+
+    @Test
+    void anEmptyPatchChangesNothing() throws Exception {
+        createInactivityRule();
+
+        mockMvc.perform(patch("/api/v1/notification-rules/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(true))
+                .andExpect(jsonPath("$.channel").value("DISCORD"))
+                .andExpect(jsonPath("$.thresholdMinutes").value(0));
+    }
+
+    /** An omitted config is not an empty config, so it must not be validated. */
+    @Test
+    void omittingConfigJsonKeepsTheStoredConfig() throws Exception {
+        mockMvc.perform(post("/api/v1/notification-rules")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ruleType": "INACTIVITY",
+                                  "enabled": true,
+                                  "channel": "DISCORD",
+                                  "thresholdMinutes": 30,
+                                  "scheduledTime": null,
+                                  "configJson": "{\\"projectKeys\\":[\\"threadkeeper\\"]}"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(patch("/api/v1/notification-rules/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"enabled": false}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.configJson").value("{\"projectKeys\":[\"threadkeeper\"]}"));
+    }
+
+    /** A config that is sent is still validated, partial update or not. */
+    @Test
+    void rejectsAnInvalidConfigThatWasActuallySent() throws Exception {
+        createInactivityRule();
+
+        mockMvc.perform(patch("/api/v1/notification-rules/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"configJson": "{\\"projectKeys\\": 5}"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
     private void createInactivityRule() throws Exception {
         mockMvc.perform(post("/api/v1/notification-rules")
                         .contentType(MediaType.APPLICATION_JSON)

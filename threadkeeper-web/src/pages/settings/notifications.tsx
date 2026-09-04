@@ -117,13 +117,11 @@ export default function NotificationSettings() {
                   onClick={() =>
                     runAction(
                       `toggle rule ${rule.id}`,
+                      // A partial update, so the toggle sends only what it changes
+                      // rather than echoing back fields it never showed the user.
                       () =>
                         threadKeeperClient.updateNotificationRule(rule.id, {
                           enabled: !rule.enabled,
-                          channel: rule.channel,
-                          thresholdMinutes: rule.thresholdMinutes,
-                          scheduledTime: rule.scheduledTime,
-                          configJson: rule.configJson,
                         }),
                       rule.enabled ? 'Rule disabled.' : 'Rule enabled.',
                     )

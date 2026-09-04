@@ -49,7 +49,10 @@ describe('notification settings', () => {
     expect(rules).toHaveTextContent('enabled');
   });
 
-  it('disables a rule without deleting it, preserving its other settings', async () => {
+  // PATCH is a partial update, so the toggle sends only the field it changes.
+  // Echoing back the whole record would let a screen that never showed the
+  // threshold overwrite it with whatever it happened to be holding.
+  it('disables a rule by sending only the field it changes', async () => {
     client.updateNotificationRule.mockResolvedValue({ ...notificationRule, enabled: false });
     render(<NotificationSettings />);
     await screen.findByRole('heading', { name: 'Rules (1)' });
@@ -57,13 +60,7 @@ describe('notification settings', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Disable' }));
 
     await waitFor(() =>
-      expect(client.updateNotificationRule).toHaveBeenCalledWith(1, {
-        enabled: false,
-        channel: 'DISCORD',
-        thresholdMinutes: 60,
-        scheduledTime: null,
-        configJson: '{}',
-      }),
+      expect(client.updateNotificationRule).toHaveBeenCalledWith(1, { enabled: false }),
     );
   });
 
