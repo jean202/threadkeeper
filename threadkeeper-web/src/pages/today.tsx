@@ -1,59 +1,11 @@
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
-import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
-import DriftWarning from '@/components/DriftWarning';
+import { TodayDashboardResponse } from '@/types/dashboard';
+import DashboardThreadList from '@/components/DashboardThreadList';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 import { formatStaleness } from '@/lib/format';
-
-const RESUME_REASON_LABEL: Record<DashboardThread['resumeReason'], string> = {
-  COMPLETED: 'Completed',
-  BLOCKED: 'Blocked',
-  DRIFTING: 'Drifting from original intent',
-  STALE: 'Untouched for a while',
-  MISSING_NEXT_ACTION: 'No next action recorded',
-  HIGH_PRIORITY: 'High priority',
-  READY: 'Ready to continue',
-};
-
-function ThreadRow({ thread }: { thread: DashboardThread }) {
-  return (
-    <li style={{ marginBottom: '12px' }}>
-      <Link href={`/threads/${thread.threadId}`}>
-        <strong>{thread.title}</strong>
-      </Link>{' '}
-      <span>
-        [{thread.priority}] {RESUME_REASON_LABEL[thread.resumeReason] ?? thread.resumeReason} ·{' '}
-        {formatStaleness(thread.staleMinutes)}
-      </span>
-      {thread.driftStatus === 'DRIFTING' && (
-        <div>
-          <DriftWarning driftStatus={thread.driftStatus} driftScore={thread.driftScore} />
-        </div>
-      )}
-      <div>Next action: {thread.nextAction ?? '— not set —'}</div>
-    </li>
-  );
-}
-
-function Section({ title, threads }: { title: string; threads: DashboardThread[] }) {
-  return (
-    <section style={{ marginBottom: '30px' }}>
-      <h2>
-        {title} ({threads.length})
-      </h2>
-      {threads.length === 0 ? (
-        <p>None</p>
-      ) : (
-        <ul>
-          {threads.map((thread) => (
-            <ThreadRow key={thread.threadId} thread={thread} />
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
+import { resumeReasonLabel } from '@/components/DashboardThreadList';
 
 export default function Today() {
   const resource = useAsyncResource<TodayDashboardResponse>(() =>
@@ -100,7 +52,7 @@ export default function Today() {
               <strong>{continueNow.title}</strong>
             </Link>
             <p>
-              Why: {RESUME_REASON_LABEL[continueNow.resumeReason] ?? continueNow.resumeReason} ·{' '}
+              Why: {resumeReasonLabel(continueNow.resumeReason)} ·{' '}
               {formatStaleness(continueNow.staleMinutes)}
             </p>
             <p>Next action: {continueNow.nextAction ?? '— not set —'}</p>
@@ -108,10 +60,10 @@ export default function Today() {
         )}
       </section>
 
-      <Section title="Active" threads={dashboard.activeThreads} />
-      <Section title="Stale" threads={dashboard.staleThreads} />
-      <Section title="Blocked" threads={dashboard.blockedThreads} />
-      <Section title="Completed Today" threads={dashboard.completedToday} />
+      <DashboardThreadList title="Active" threads={dashboard.activeThreads} />
+      <DashboardThreadList title="Stale" threads={dashboard.staleThreads} />
+      <DashboardThreadList title="Blocked" threads={dashboard.blockedThreads} />
+      <DashboardThreadList title="Completed Today" threads={dashboard.completedToday} />
     </div>
   );
 }
