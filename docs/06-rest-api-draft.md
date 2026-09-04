@@ -160,7 +160,36 @@ Example request:
 
 ### `GET /api/v1/provider-connections/{connectionId}/imports/latest`
 
-Return the latest import summary.
+Ingestion status for one connection. `404` with `PROVIDER_CONNECTION_NOT_FOUND`
+if the connection does not exist.
+
+```json
+{
+  "connectionId": 1,
+  "provider": "CODEX",
+  "status": "ACTIVE",
+  "lastImportAt": "2026-09-04T02:15:08.419Z",
+  "lastErrorMessage": null,
+  "importedSessionCount": 8,
+  "linkedThreadCount": 7,
+  "latestSessionImportedAt": "2026-09-04T02:15:08.416Z",
+  "recentSessions": []
+}
+```
+
+Two fields carry distinctions the session count cannot make:
+
+- `linkedThreadCount` counts **distinct threads**, not rows. Several sessions
+  can share a thread, so it is normally lower than `importedSessionCount`.
+- `latestSessionImportedAt` comes from the imported rows, whereas
+  `lastImportAt` is the connection's own bookkeeping. A run that finds nothing
+  new moves `lastImportAt` and leaves the other alone — that gap is what
+  separates "nothing to import" from "never imported". The two are stamped a
+  few milliseconds apart even on a productive run, since the connection
+  records its timestamp after the rows are written, so compare them with a
+  tolerance rather than for equality.
+
+`recentSessions` holds at most the five newest sessions, newest first.
 
 ## 7. Dashboard
 

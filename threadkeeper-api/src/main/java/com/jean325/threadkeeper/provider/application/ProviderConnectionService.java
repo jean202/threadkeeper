@@ -8,6 +8,7 @@ import com.jean325.threadkeeper.provider.domain.ProviderType;
 import com.jean325.threadkeeper.provider.dto.CreateProviderConnectionRequest;
 import com.jean325.threadkeeper.provider.dto.BridgeImportPayload;
 import com.jean325.threadkeeper.provider.dto.ImportSourceSessionsRequest;
+import com.jean325.threadkeeper.provider.dto.LatestImportResponse;
 import com.jean325.threadkeeper.provider.dto.ProviderConnectionResponse;
 import com.jean325.threadkeeper.provider.dto.ResetConnectionImportsResponse;
 import com.jean325.threadkeeper.provider.dto.RunProviderImportRequest;
@@ -25,12 +26,16 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProviderConnectionService {
+
+    /** How many recent sessions the settings screen shows. */
+    private static final int RECENT_SESSION_LIMIT = 5;
 
     private final ProviderConnectionRepository providerConnectionRepository;
     private final ThreadRepository threadRepository;
@@ -122,6 +127,33 @@ public class ProviderConnectionService {
                         .toList()
         );
         return importSourceSessions(connectionId, importRequest);
+    }
+
+    /**
+     * Ingestion status for the provider settings screen. The counts come from
+     * aggregate queries and only the handful of sessions actually shown are
+     * loaded, so a connection with thousands of imports stays cheap to render.
+     */
+    @Transactional(readOnly = true)
+    public LatestImportResponse latestImport(Long connectionId) {
+        ProviderConnection connection = getConnectionOrThrow(connectionId);
+
+        List<SourceSession> recent = sourceSessionRepository
+                .findAllByProviderConnectionIdOrderByImportedAtDesc(
+                        connectionId, PageRequest.of(0, RECENT_SESSION_LIMIT));
+
+        return new LatestImportResponse(
+                connection.getId(),
+                connection.getProvider().name(),
+                connection.getStatus().name(),
+                connection.getLastImportAt(),
+                connection.getLastErrorMessage(),
+                sourceSessionRepository.countByProviderConnectionId(connectionId),
+                sourceSessionRepository.countDistinctThreadsByProviderConnectionId(connectionId),
+                // The list is newest first, so the head carries the newest import.
+                recent.isEmpty() ? null : recent.get(0).getImportedAt(),
+                recent.stream().map(SourceSessionResponse::from).toList()
+        );
     }
 
     @Transactional

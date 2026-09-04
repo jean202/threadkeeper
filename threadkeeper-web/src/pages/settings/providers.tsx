@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { describeApiError, threadKeeperClient } from '@/api/client';
 import { ProviderType } from '@/types/thread';
+import ImportDetail from '@/components/ImportDetail';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 
@@ -95,6 +96,7 @@ export default function ProviderSettings() {
                 {connection.lastErrorMessage && (
                   <div role="alert">Last error: {connection.lastErrorMessage}</div>
                 )}
+                <ImportDetail connectionId={connection.id} />
                 <button
                   onClick={() =>
                     runAction(

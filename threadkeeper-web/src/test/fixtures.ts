@@ -13,7 +13,11 @@ import {
   ThreadSnapshotResponse,
 } from '@/types/thread';
 import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
-import { NotificationRuleResponse, ProviderConnectionResponse } from '@/types/settings';
+import {
+  LatestImportResponse,
+  NotificationRuleResponse,
+  ProviderConnectionResponse,
+} from '@/types/settings';
 
 export const sourceSession: SourceSessionResponse = {
   id: 1,
@@ -155,4 +159,16 @@ export const providerConnection: ProviderConnectionResponse = {
   lastImportAt: '2026-08-04T04:19:27Z',
   lastErrorMessage: null,
   importedSessionCount: 3,
+};
+
+export const latestImport: LatestImportResponse = {
+  connectionId: 1,
+  provider: 'CODEX',
+  status: 'ACTIVE',
+  lastImportAt: '2026-08-04T06:00:00Z',
+  lastErrorMessage: null,
+  importedSessionCount: 3,
+  linkedThreadCount: 2,
+  latestSessionImportedAt: '2026-08-04T04:19:27Z',
+  recentSessions: [sourceSession],
 };
