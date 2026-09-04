@@ -137,7 +137,8 @@ export const todayDashboard: TodayDashboardResponse = {
   staleThreads: [dashboardThread],
   blockedThreads: [],
   completedToday: [],
-  recommendedOrder: [dashboardThread, driftingThread],
+  // Ids, matching the API: the objects live in activeThreads.
+  recommendedOrder: [dashboardThread.threadId, driftingThread.threadId],
 };
 
 export const notificationRule: NotificationRuleResponse = {

@@ -5,11 +5,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jean325.threadkeeper.thread.domain.DriftStatus;
 import com.jean325.threadkeeper.thread.domain.ThreadRepository;
 import com.jean325.threadkeeper.thread.domain.ThreadStatus;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -31,6 +34,9 @@ class DashboardControllerTest {
 
     @Autowired
     private ThreadRepository threadRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void briefingRanksThreadsByPriorityDriftAndStaleness() throws Exception {
@@ -106,7 +112,36 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$.activeThreads[0].threadId").value(2))
                 .andExpect(jsonPath("$.activeThreads[0].title").value("Still active"))
                 .andExpect(jsonPath("$.activeThreads[0].resumeReason").exists())
-                .andExpect(jsonPath("$.recommendedOrder[0].threadId").value(2));
+                // recommendedOrder carries ids, resolved against activeThreads.
+                .andExpect(jsonPath("$.recommendedOrder[0]").value(2));
+    }
+
+    /**
+     * Every id in recommendedOrder has to be findable in activeThreads --
+     * otherwise the client cannot render the ranking at all.
+     */
+    @Test
+    void recommendedOrderIsIdsThatAllAppearInActiveThreads() throws Exception {
+        createThread("First", "HIGH", "Do the thing");
+        createThread("Second", "LOW", "Do the other thing");
+
+        String body = mockMvc.perform(get("/api/v1/dashboard/today"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        var root = objectMapper.readTree(body);
+        var order = root.get("recommendedOrder");
+        var activeIds = root.get("activeThreads").findValues("threadId").stream()
+                .map(JsonNode::asLong)
+                .toList();
+
+        Assertions.assertThat(order.size()).isEqualTo(activeIds.size());
+        for (var id : order) {
+            Assertions.assertThat(id.isNumber()).isTrue();
+            Assertions.assertThat(activeIds).contains(id.asLong());
+        }
     }
 
     @Test

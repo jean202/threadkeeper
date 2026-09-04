@@ -84,9 +84,15 @@ export default function Today() {
     );
   }
 
-  // The server ranks by priority, drift, and staleness -- the first entry is the
-  // one thread to resume if you only have time for one.
-  const continueNow = dashboard.recommendedOrder[0] ?? null;
+  // The server ranks by priority, drift, and staleness and sends ids; the first
+  // one is the thread to resume if you only have time for one. Every id in the
+  // ranking appears in activeThreads, but resolve defensively rather than
+  // rendering a blank card if that ever stops holding.
+  const topRankedId = dashboard.recommendedOrder[0] ?? null;
+  const continueNow =
+    topRankedId === null
+      ? null
+      : (dashboard.activeThreads.find((thread) => thread.threadId === topRankedId) ?? null);
 
   return (
     <div style={{ padding: '20px' }}>

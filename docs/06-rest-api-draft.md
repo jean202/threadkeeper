@@ -197,13 +197,18 @@ Two fields carry distinctions the session count cannot make:
 
 Return dashboard data.
 
-Response sections:
+| Field | Type | Contents |
+| --- | --- | --- |
+| `activeThreads` | objects | Resumable threads, already ranked |
+| `staleThreads` | objects | The subset of `activeThreads` untouched past the threshold |
+| `blockedThreads` | objects | Blocked by status or by drift |
+| `completedToday` | objects | Completed since midnight (Asia/Seoul) |
+| `recommendedOrder` | **thread ids** | Resume order |
 
-- active threads
-- stale threads
-- blocked threads
-- completed today
-- recommended order
+`recommendedOrder` carries ids, not objects: every id in it appears in
+`activeThreads`, so repeating the objects would send each active thread twice.
+Clients resolve each id against `activeThreads` — the first id is the single
+thread to resume if there is only time for one.
 
 ### `GET /api/v1/dashboard/briefing`
 
@@ -230,7 +235,25 @@ Create a rule.
 
 ### `PATCH /api/v1/notification-rules/{ruleId}`
 
-Update a rule.
+Update a rule. This is a **partial update**: send only the fields being
+changed, and every field left out keeps its stored value. `ruleType` is
+immutable and is not accepted here.
+
+```
+PATCH /api/v1/notification-rules/1
+{"enabled": false}
+```
+
+That request disables the rule and leaves its channel, threshold, schedule and
+config exactly as they were. An empty body `{}` is valid and changes nothing.
+
+A `configJson` that *is* sent is still validated and a bad one is rejected with
+`400`; omitting it is not the same as sending an empty config.
+
+Because "absent" and "explicitly null" arrive identically, a field cannot be
+cleared back to null through this endpoint. Nothing needs to: a threshold only
+applies to `INACTIVITY` rules and a schedule only to `DAILY_BRIEFING`, and the
+rule type cannot change.
 
 ## 9. Notification Events
 

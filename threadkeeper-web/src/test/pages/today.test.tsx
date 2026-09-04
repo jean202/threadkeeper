@@ -46,6 +46,29 @@ describe('today dashboard', () => {
     expect(continueNow).toHaveTextContent('Untouched for a while');
   });
 
+  // recommendedOrder carries ids now, so Continue Now is a lookup rather than a
+  // read. Ranking second must actually change which thread it shows.
+  it('follows the ranking rather than the list order', async () => {
+    client.getTodayDashboard.mockResolvedValue({
+      ...todayDashboard,
+      recommendedOrder: [todayDashboard.activeThreads[1].threadId],
+    });
+    render(<Today />);
+
+    const continueNow = (await screen.findByRole('heading', { name: 'Continue Now' })).closest(
+      'section',
+    )!;
+    expect(continueNow).toHaveTextContent(todayDashboard.activeThreads[1].title);
+    expect(continueNow).not.toHaveTextContent(todayDashboard.activeThreads[0].title);
+  });
+
+  it('shows nothing to resume rather than a blank card if a ranked id is missing', async () => {
+    client.getTodayDashboard.mockResolvedValue({ ...todayDashboard, recommendedOrder: [9999] });
+    render(<Today />);
+
+    expect(await screen.findByText('Nothing active to resume.')).toBeInTheDocument();
+  });
+
   it('warns about a drifting thread', async () => {
     render(<Today />);
 
