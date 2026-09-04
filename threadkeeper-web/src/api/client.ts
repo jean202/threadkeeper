@@ -21,6 +21,7 @@ import {
   DispatchNotificationsResponse,
   EvaluateNotificationRulesResponse,
   NotificationRuleResponse,
+  LatestImportResponse,
   ProviderConnectionResponse,
   ResetConnectionImportsResponse,
 } from '@/types/settings';
@@ -241,6 +242,13 @@ export class ThreadKeeperClient {
     const response = await this.client.post<unknown[]>(
       `/provider-connections/${connectionId}/imports/run`,
       data,
+    );
+    return response.data;
+  }
+
+  async getLatestImport(connectionId: number): Promise<LatestImportResponse> {
+    const response = await this.client.get<LatestImportResponse>(
+      `/provider-connections/${connectionId}/imports/latest`,
     );
     return response.data;
   }

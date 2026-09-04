@@ -3,6 +3,7 @@ package com.jean325.threadkeeper.provider.api;
 import com.jean325.threadkeeper.provider.application.ProviderConnectionService;
 import com.jean325.threadkeeper.provider.dto.CreateProviderConnectionRequest;
 import com.jean325.threadkeeper.provider.dto.ImportSourceSessionsRequest;
+import com.jean325.threadkeeper.provider.dto.LatestImportResponse;
 import com.jean325.threadkeeper.provider.dto.ProviderConnectionResponse;
 import com.jean325.threadkeeper.provider.dto.ResetConnectionImportsResponse;
 import com.jean325.threadkeeper.provider.dto.RunProviderImportRequest;
@@ -56,6 +57,11 @@ public class ProviderConnectionController {
             @Valid @RequestBody RunProviderImportRequest request
     ) {
         return providerConnectionService.runImport(connectionId, request);
+    }
+
+    @GetMapping("/{connectionId}/imports/latest")
+    public LatestImportResponse latestImport(@PathVariable Long connectionId) {
+        return providerConnectionService.latestImport(connectionId);
     }
 
     @DeleteMapping("/{connectionId}/imports")
