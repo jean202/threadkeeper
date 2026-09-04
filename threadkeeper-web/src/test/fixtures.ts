@@ -9,6 +9,7 @@ import {
   NotificationEventResponse,
   SourceSessionResponse,
   ThreadDetailResponse,
+  ThreadResponse,
   ThreadSnapshotResponse,
 } from '@/types/thread';
 import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
@@ -84,6 +85,23 @@ export const threadDetail: ThreadDetailResponse = {
   snapshots: [snapshot],
   handoffs: [handoff],
   notificationEvents: [notificationEvent],
+};
+
+export const threadListItem: ThreadResponse = {
+  id: 1,
+  projectKey: 'threadkeeper',
+  title: 'Align web types with backend DTOs',
+  status: 'ACTIVE',
+  priority: 'HIGH',
+  originalIntent: 'Make the web client match the API contract',
+  todayGoal: 'Ship the type fix',
+  doneCondition: 'Handoff page renders without crashing',
+  currentNextAction: 'Verify in browser',
+  driftStatus: 'ON_TRACK',
+  driftScore: 12,
+  lastActivityAt: '2026-08-04T04:19:27.431677051Z',
+  completedAt: null,
+  createdAt: '2026-08-03T09:00:00.000000000Z',
 };
 
 export const dashboardThread: DashboardThread = {

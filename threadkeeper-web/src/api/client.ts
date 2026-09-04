@@ -11,6 +11,7 @@ import {
   ThreadDetailResponse,
   ThreadPriority,
   ThreadResponse,
+  ThreadSearchParams,
   ThreadSnapshotResponse,
   ThreadStatus,
 } from '@/types/thread';
@@ -59,8 +60,18 @@ export class ThreadKeeperClient {
     });
   }
 
-  async listThreads(): Promise<ThreadResponse[]> {
-    const response = await this.client.get<ThreadResponse[]>('/threads');
+  /**
+   * Blank and undefined values are dropped rather than sent, so an untouched
+   * filter field cannot narrow the result set.
+   */
+  async listThreads(params: ThreadSearchParams = {}): Promise<ThreadResponse[]> {
+    const query: Record<string, string> = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) continue;
+      const text = String(value).trim();
+      if (text !== '') query[key] = text;
+    }
+    const response = await this.client.get<ThreadResponse[]>('/threads', { params: query });
     return response.data;
   }
 

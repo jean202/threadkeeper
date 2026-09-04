@@ -17,15 +17,27 @@ Return service health.
 
 ### `GET /api/v1/threads`
 
-List threads.
+List threads, newest activity first.
 
-Filters:
+All filters are optional query parameters, and omitting every one of them
+returns the full list. Blank values are ignored rather than treated as a filter,
+so an empty form field cannot narrow the result set.
 
-- `status`
-- `priority`
-- `projectKey`
-- `provider`
-- `q`
+| Parameter | Type | Matches |
+| --- | --- | --- |
+| `projectKey` | string | Exact project key, ignoring case |
+| `provider` | `CLAUDE` \| `CODEX` \| `GEMINI` \| `GPT` | Threads with at least one imported session from that provider |
+| `status` | `ACTIVE` \| `PAUSED` \| `BLOCKED` \| `COMPLETED` | Thread status |
+| `priority` | `LOW` \| `MEDIUM` \| `HIGH` | Thread priority |
+| `q` | string | Substring, ignoring case, of the title, original intent, next action, today's goal, or done condition |
+| `activeWithinDays` | integer | Threads whose last activity falls within that many days; values of zero or less are ignored |
+
+Filters combine with AND. An unknown enum constant is rejected with `400` and an
+`INVALID_PARAMETER` body naming the accepted values.
+
+```
+GET /api/v1/threads?projectKey=threadkeeper&status=ACTIVE&q=drift
+```
 
 ### `POST /api/v1/threads`
 
