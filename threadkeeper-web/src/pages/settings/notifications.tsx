@@ -4,6 +4,7 @@ import { describeApiError, threadKeeperClient } from '@/api/client';
 import { NotificationChannel, NotificationRuleType } from '@/types/thread';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
+import { formatTimestamp } from '@/lib/format';
 
 const RULE_TYPES: NotificationRuleType[] = ['INACTIVITY', 'COMPLETION', 'DAILY_BRIEFING', 'DRIFT_ALERT'];
 const CHANNELS: NotificationChannel[] = ['DISCORD', 'DESKTOP', 'EMAIL'];
@@ -78,7 +79,6 @@ export default function NotificationSettings() {
   if (!resource.data) {
     return (
       <div style={{ padding: '20px' }}>
-        <Link href="/">← Back</Link>
         <h1>Notifications &amp; Rules</h1>
         <LoadError
           error={resource.error ?? 'Failed to load notification settings'}
@@ -94,7 +94,6 @@ export default function NotificationSettings() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '760px' }}>
-      <Link href="/">← Back</Link>
       <h1>Notifications &amp; Rules</h1>
       <p>Control reminder noise: which events notify you, how often, and through which channel.</p>
 
@@ -248,7 +247,7 @@ export default function NotificationSettings() {
             {events.slice(0, 15).map((event) => (
               <li key={event.id}>
                 {event.eventType} · {event.channel} · <strong>{event.deliveryStatus}</strong> ·{' '}
-                {new Date(event.createdAt).toLocaleString()}
+                {formatTimestamp(event.createdAt)}
                 {event.threadId !== null && (
                   <>
                     {' '}

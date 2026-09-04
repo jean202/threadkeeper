@@ -52,19 +52,6 @@ export default function Home() {
   return (
     <div style={{ padding: '20px' }}>
       <h1>ThreadKeeper</h1>
-      <div style={{ marginBottom: '20px' }}>
-        <Link href="/today" style={{ marginRight: '10px' }}>
-          Today
-        </Link>
-        <Link href="/threads/new" style={{ marginRight: '10px' }}>
-          New Thread
-        </Link>
-        <Link href="/settings/notifications" style={{ marginRight: '10px' }}>
-          Notifications
-        </Link>
-        <Link href="/settings/providers">Providers</Link>
-      </div>
-
       <h2>Threads</h2>
       <ThreadSearchForm onSearch={setSearch} busy={searching} />
 
