@@ -80,6 +80,21 @@ export interface DriftEvaluationResponse {
   explanation: string;
 }
 
+/**
+ * Query parameters for GET /threads -- mirrors thread/dto/ThreadSearchCriteria.java.
+ * Every field is optional; sending none returns the unfiltered list.
+ */
+export interface ThreadSearchParams {
+  projectKey?: string;
+  provider?: ProviderType;
+  status?: ThreadStatus;
+  priority?: ThreadPriority;
+  /** Free-text, matched against the title, intent, next action, goal, and done condition. */
+  q?: string;
+  /** Keeps only threads with activity in the last N days. */
+  activeWithinDays?: number;
+}
+
 /** GET /threads -- the list projection; narrower than the detail record, which also carries the related collections. */
 export interface ThreadResponse {
   id: number;

@@ -13,12 +13,15 @@ import com.jean325.threadkeeper.source.domain.SourceSessionRepository;
 import com.jean325.threadkeeper.source.dto.SourceSessionResponse;
 import com.jean325.threadkeeper.thread.domain.Thread;
 import com.jean325.threadkeeper.thread.domain.ThreadRepository;
+import com.jean325.threadkeeper.thread.domain.ThreadSpecifications;
 import com.jean325.threadkeeper.thread.dto.CreateThreadRequest;
 import com.jean325.threadkeeper.thread.dto.ThreadDetailResponse;
 import com.jean325.threadkeeper.thread.dto.ThreadResponse;
+import com.jean325.threadkeeper.thread.dto.ThreadSearchCriteria;
 import com.jean325.threadkeeper.thread.dto.UpdateNextActionRequest;
 import com.jean325.threadkeeper.thread.dto.UpdateThreadStatusRequest;
 import java.util.List;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,10 +54,21 @@ public class ThreadService {
 
     @Transactional(readOnly = true)
     public List<ThreadResponse> listThreads() {
-        return threadRepository.findAllByOrderByLastActivityAtDesc()
-                .stream()
-                .map(ThreadResponse::from)
-                .toList();
+        return listThreads(ThreadSearchCriteria.none());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ThreadResponse> listThreads(ThreadSearchCriteria criteria) {
+        // With no filters, keep using the derived query the dashboard already
+        // relies on rather than routing an unfiltered search through the
+        // criteria builder.
+        List<Thread> threads = criteria.isEmpty()
+                ? threadRepository.findAllByOrderByLastActivityAtDesc()
+                : threadRepository.findAll(
+                        ThreadSpecifications.matching(criteria),
+                        Sort.by(Sort.Direction.DESC, "lastActivityAt"));
+
+        return threads.stream().map(ThreadResponse::from).toList();
     }
 
     @Transactional
