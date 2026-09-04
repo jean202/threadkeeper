@@ -91,6 +91,59 @@ Scheduler defaults:
 - `INACTIVITY` alerts dedupe within the rule threshold window
 - `DAILY_BRIEFING` dedupes per thread per day
 
+### What the messages look like
+
+Each notification is rendered for a human rather than posted as raw JSON. The
+content follows `docs/03-mvp-screens-and-features.md` section 5:
+
+```
+⏰ **Idle 3h — Fix drift scoring**
+`threadkeeper`
+
+Intent: Make drift detection use intent-term coverage
+Next action: Ship the evaluator
+```
+
+```
+✅ **Completed — Wire the handoff composer**
+`threadkeeper` · 2026-09-04 15:49 KST
+
+Intent: Let a thread be handed to another provider without losing context
+Done when: Draft round-trips through the API
+
+Follow-up: a next action is still pinned — "Save and finalize a draft".
+Clear it, or open a new thread for what is left.
+```
+
+```
+⚠️ **Drifting 82% off intent — Tune the drift threshold**
+`threadkeeper`
+
+Original goal: Decide the score at which a thread counts as drifting
+Working on now: Rewrite the Discord dispatcher
+```
+
+Thread fields are read at dispatch time, so a message reflects the thread as
+the reader will find it. Facts that only existed when the event was queued --
+how long it had been idle, which handoff became ready -- come from the stored
+payload, since they cannot be recovered later.
+
+A ready handoff is queued under the `DRIFT_ALERT` rule type, so the payload
+rather than the event type decides which of the two a message describes:
+
+```
+🔀 **Handoff ready — Wire the handoff composer**
+`threadkeeper`
+
+Next action: Save and finalize a draft
+```
+
+The briefing sends one message per thread rather than a single combined
+digest, because a notification event belongs to one thread.
+
+Discord rejects a body over 2000 characters while an intent may be stored up
+to 4000, so long fields are truncated.
+
 ## 4. Create Provider Connection
 
 ```bash
@@ -276,3 +329,7 @@ clears the warning on the next evaluation.
   ("implement" and "implemented" are different terms)
 - log rotation runs only at boot, so a long-running machine keeps appending to
   one file until it is restarted or the script is run by hand
+- the daily briefing sends one message per thread rather than one digest naming
+  the top three, since an event belongs to a single thread
+- desktop and email channels are still no-op dispatchers, so only Discord
+  actually renders a message

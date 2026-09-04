@@ -14,11 +14,17 @@ public class DiscordWebhookDispatcher implements NotificationChannelDispatcher {
 
     private final NotificationProperties notificationProperties;
     private final ObjectMapper objectMapper;
+    private final NotificationMessageComposer messageComposer;
     private final HttpClient httpClient;
 
-    public DiscordWebhookDispatcher(NotificationProperties notificationProperties, ObjectMapper objectMapper) {
+    public DiscordWebhookDispatcher(
+            NotificationProperties notificationProperties,
+            ObjectMapper objectMapper,
+            NotificationMessageComposer messageComposer
+    ) {
         this.notificationProperties = notificationProperties;
         this.objectMapper = objectMapper;
+        this.messageComposer = messageComposer;
         this.httpClient = HttpClient.newHttpClient();
     }
 
@@ -35,7 +41,7 @@ public class DiscordWebhookDispatcher implements NotificationChannelDispatcher {
         }
 
         try {
-            String body = objectMapper.writeValueAsString(Map.of("content", renderContent(event)));
+            String body = objectMapper.writeValueAsString(Map.of("content", messageComposer.compose(event)));
             HttpRequest request = HttpRequest.newBuilder(URI.create(webhookUrl))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -50,10 +56,5 @@ public class DiscordWebhookDispatcher implements NotificationChannelDispatcher {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Discord webhook dispatch failed: " + ex.getMessage(), ex);
         }
-    }
-
-    private String renderContent(NotificationEvent event) {
-        Long threadId = event.getThread() == null ? null : event.getThread().getId();
-        return "[" + event.getEventType().name() + "] thread=" + threadId + " payload=" + event.getPayloadJson();
     }
 }
