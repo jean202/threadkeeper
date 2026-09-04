@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { describeApiError, threadKeeperClient } from '@/api/client';
@@ -6,48 +6,45 @@ import { ProviderType, ThreadDetailResponse } from '@/types/thread';
 import { PortfolioReadiness } from '@/types/portfolio';
 import PortfolioReadinessBadge from '@/components/PortfolioReadinessBadge';
 import DriftWarning from '@/components/DriftWarning';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 
 const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+
+interface ThreadDetailData {
+  thread: ThreadDetailResponse;
+  readiness: PortfolioReadiness | undefined;
+}
 
 export default function ThreadDetail() {
   const router = useRouter();
   const { threadId } = router.query;
-  const [thread, setThread] = useState<ThreadDetailResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [readiness, setReadiness] = useState<PortfolioReadiness | undefined>(undefined);
 
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [nextActionDraft, setNextActionDraft] = useState('');
+  // null means "not edited", so the field shows whatever the server last said.
+  // Deriving it beats syncing it in an effect, which would cascade a render.
+  const [nextActionEdit, setNextActionEdit] = useState<string | null>(null);
   const [progressNote, setProgressNote] = useState('');
   const [targetProvider, setTargetProvider] = useState<ProviderType>('CLAUDE');
 
-  const loadThread = useCallback(async () => {
-    const [data, readinessMap] = await Promise.all([
-      threadKeeperClient.getThread(Number(threadId)),
-      threadKeeperClient.getPortfolioReadiness(),
-    ]);
-    setThread(data);
-    setReadiness(readinessMap.get(data.projectKey));
-    setNextActionDraft(data.currentNextAction ?? '');
-  }, [threadId]);
+  // Disabled until the router has filled in the dynamic param, so the hook does
+  // not fire a request for thread "NaN".
+  const resource = useAsyncResource<ThreadDetailData>(
+    async () => {
+      const [thread, readinessMap] = await Promise.all([
+        threadKeeperClient.getThread(Number(threadId)),
+        threadKeeperClient.getPortfolioReadiness(),
+      ]);
+      return { thread, readiness: readinessMap.get(thread.projectKey) };
+    },
+    [threadId],
+    Boolean(threadId),
+  );
 
-  useEffect(() => {
-    if (!threadId) return;
-
-    const load = async () => {
-      try {
-        await loadThread();
-      } catch (err) {
-        setError(describeApiError(err, 'Failed to load thread'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, [threadId, loadThread]);
+  const thread = resource.data?.thread ?? null;
+  const readiness = resource.data?.readiness;
+  const nextActionDraft = nextActionEdit ?? thread?.currentNextAction ?? '';
 
   /** Runs one mutation, then refetches so the page reflects server truth. */
   const runAction = async (name: string, action: () => Promise<unknown>) => {
@@ -55,7 +52,8 @@ export default function ThreadDetail() {
     setActionError(null);
     try {
       await action();
-      await loadThread();
+      setNextActionEdit(null);
+      resource.reload();
     } catch (err) {
       setActionError(describeApiError(err, `Failed to ${name}`));
     } finally {
@@ -63,9 +61,20 @@ export default function ThreadDetail() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!thread) return <div>Thread not found</div>;
+  if (resource.loading) return <div>Loading...</div>;
+  if (!thread) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Link href="/">← Back</Link>
+        <LoadError
+          error={resource.error ?? 'Thread not found'}
+          failures={resource.failures}
+          retrying={resource.retrying}
+          onRetry={resource.reload}
+        />
+      </div>
+    );
+  }
 
   const latestHandoff = thread.handoffs.length > 0 ? thread.handoffs[0] : null;
   const id = thread.id;
@@ -106,7 +115,7 @@ export default function ThreadDetail() {
           <textarea
             id="nextAction"
             value={nextActionDraft}
-            onChange={(e) => setNextActionDraft(e.target.value)}
+            onChange={(e) => setNextActionEdit(e.target.value)}
             maxLength={2000}
             rows={2}
             style={{ width: '100%', padding: '8px' }}

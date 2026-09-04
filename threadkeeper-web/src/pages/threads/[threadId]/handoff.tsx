@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { describeApiError, threadKeeperClient } from '@/api/client';
 import { HandoffResponse, ProviderType, ThreadDetailResponse } from '@/types/thread';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 
 const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
 
@@ -45,38 +47,24 @@ function toPayload(fields: DraftFields) {
 export default function HandoffComposer() {
   const router = useRouter();
   const { threadId } = router.query;
-  const [thread, setThread] = useState<ThreadDetailResponse | null>(null);
-  const [handoff, setHandoff] = useState<HandoffResponse | null>(null);
-  const [fields, setFields] = useState<DraftFields | null>(null);
+  // null means "not edited", so the form shows the handoff as the server has it.
+  // Deriving beats syncing in an effect, which would cascade a render.
+  const [edits, setEdits] = useState<DraftFields | null>(null);
   const [newDraftProvider, setNewDraftProvider] = useState<ProviderType>('CLAUDE');
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const data = await threadKeeperClient.getThread(Number(threadId));
-    setThread(data);
-    const latest = data.handoffs.length > 0 ? data.handoffs[0] : null;
-    setHandoff(latest);
-    setFields(latest ? toFields(latest) : null);
-  }, [threadId]);
+  const resource = useAsyncResource<ThreadDetailResponse>(
+    () => threadKeeperClient.getThread(Number(threadId)),
+    [threadId],
+    Boolean(threadId),
+  );
 
-  useEffect(() => {
-    if (!threadId) return;
-
-    const run = async () => {
-      try {
-        await load();
-      } catch (err) {
-        setError(describeApiError(err, 'Failed to load the handoff'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    run();
-  }, [threadId, load]);
+  const thread: ThreadDetailResponse | null = resource.data ?? null;
+  const handoff: HandoffResponse | null =
+    thread && thread.handoffs.length > 0 ? thread.handoffs[0] : null;
+  const fields: DraftFields | null = edits ?? (handoff ? toFields(handoff) : null);
 
   const runAction = async (name: string, action: () => Promise<unknown>, done: string) => {
     setBusy(name);
@@ -84,7 +72,8 @@ export default function HandoffComposer() {
     setNotice(null);
     try {
       await action();
-      await load();
+      setEdits(null);
+      resource.reload();
       setNotice(done);
     } catch (err) {
       setError(describeApiError(err, `Failed to ${name}`));
@@ -94,11 +83,25 @@ export default function HandoffComposer() {
   };
 
   const update = (patch: Partial<DraftFields>) =>
-    setFields((current) => (current ? { ...current, ...patch } : current));
+    setEdits((current) => {
+      const base = current ?? (handoff ? toFields(handoff) : null);
+      return base ? { ...base, ...patch } : base;
+    });
 
-  if (loading) return <div>Loading...</div>;
-  if (error && !thread) return <div>Error: {error}</div>;
-  if (!thread) return <div>Thread not found</div>;
+  if (resource.loading) return <div>Loading...</div>;
+  if (!thread) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Link href="/">← Back</Link>
+        <LoadError
+          error={resource.error ?? error ?? 'Thread not found'}
+          failures={resource.failures}
+          retrying={resource.retrying}
+          onRetry={resource.reload}
+        />
+      </div>
+    );
+  }
 
   const sourceSession = handoff?.sourceSessionId
     ? thread.sourceSessions.find((session) => session.id === handoff.sourceSessionId)

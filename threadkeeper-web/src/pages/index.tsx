@@ -1,37 +1,41 @@
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { threadKeeperClient } from '@/api/client';
 import { ThreadResponse } from '@/types/thread';
 import { PortfolioReadiness } from '@/types/portfolio';
 import PortfolioReadinessBadge from '@/components/PortfolioReadinessBadge';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
+
+interface HomeData {
+  threads: ThreadResponse[];
+  readiness: Map<string, PortfolioReadiness>;
+}
 
 export default function Home() {
-  const [threads, setThreads] = useState<ThreadResponse[]>([]);
-  const [readiness, setReadiness] = useState<Map<string, PortfolioReadiness>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const resource = useAsyncResource<HomeData>(async () => {
+    const [threads, readiness] = await Promise.all([
+      threadKeeperClient.listThreads(),
+      threadKeeperClient.getPortfolioReadiness(),
+    ]);
+    return { threads, readiness };
+  });
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [threadData, readinessData] = await Promise.all([
-          threadKeeperClient.listThreads(),
-          threadKeeperClient.getPortfolioReadiness(),
-        ]);
-        setThreads(threadData);
-        setReadiness(readinessData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load threads');
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (resource.loading) return <div>Loading...</div>;
+  if (!resource.data) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <h1>ThreadKeeper</h1>
+        <LoadError
+          error={resource.error ?? 'Failed to load threads'}
+          failures={resource.failures}
+          retrying={resource.retrying}
+          onRetry={resource.reload}
+        />
+      </div>
+    );
+  }
 
-    load();
-  }, []);
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  const { threads, readiness } = resource.data;
 
   return (
     <div style={{ padding: '20px' }}>

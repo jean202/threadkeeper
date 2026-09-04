@@ -1,8 +1,9 @@
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { describeApiError, threadKeeperClient } from '@/api/client';
-import { NotificationChannel, NotificationEventResponse, NotificationRuleType } from '@/types/thread';
-import { NotificationRuleResponse } from '@/types/settings';
+import { NotificationChannel, NotificationRuleType } from '@/types/thread';
+import LoadError from '@/components/LoadError';
+import { useAsyncResource } from '@/lib/useAsyncResource';
 
 const RULE_TYPES: NotificationRuleType[] = ['INACTIVITY', 'COMPLETION', 'DAILY_BRIEFING', 'DRIFT_ALERT'];
 const CHANNELS: NotificationChannel[] = ['DISCORD', 'DESKTOP', 'EMAIL'];
@@ -24,9 +25,6 @@ function usesSchedule(ruleType: NotificationRuleType) {
 }
 
 export default function NotificationSettings() {
-  const [rules, setRules] = useState<NotificationRuleResponse[]>([]);
-  const [events, setEvents] = useState<NotificationEventResponse[]>([]);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -36,27 +34,13 @@ export default function NotificationSettings() {
   const [thresholdMinutes, setThresholdMinutes] = useState('60');
   const [scheduledTime, setScheduledTime] = useState('09:00');
 
-  const load = useCallback(async () => {
-    const [ruleData, eventData] = await Promise.all([
+  const resource = useAsyncResource(async () => {
+    const [rules, events] = await Promise.all([
       threadKeeperClient.listNotificationRules(),
       threadKeeperClient.listNotificationEvents(),
     ]);
-    setRules(ruleData);
-    setEvents(eventData);
-  }, []);
-
-  useEffect(() => {
-    const run = async () => {
-      try {
-        await load();
-      } catch (err) {
-        setError(describeApiError(err, 'Failed to load notification settings'));
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [load]);
+    return { rules, events };
+  });
 
   const runAction = async (name: string, action: () => Promise<unknown>, done?: string) => {
     setBusy(name);
@@ -64,7 +48,7 @@ export default function NotificationSettings() {
     setNotice(null);
     try {
       const result = await action();
-      await load();
+      resource.reload();
       if (done) setNotice(typeof result === 'string' ? result : done);
     } catch (err) {
       setError(describeApiError(err, `Failed to ${name}`));
@@ -90,7 +74,23 @@ export default function NotificationSettings() {
     );
   };
 
-  if (loading) return <div>Loading notification settings...</div>;
+  if (resource.loading) return <div>Loading notification settings...</div>;
+  if (!resource.data) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Link href="/">← Back</Link>
+        <h1>Notifications &amp; Rules</h1>
+        <LoadError
+          error={resource.error ?? 'Failed to load notification settings'}
+          failures={resource.failures}
+          retrying={resource.retrying}
+          onRetry={resource.reload}
+        />
+      </div>
+    );
+  }
+
+  const { rules, events } = resource.data;
 
   return (
     <div style={{ padding: '20px', maxWidth: '760px' }}>
