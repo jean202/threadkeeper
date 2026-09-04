@@ -8,6 +8,7 @@ import PortfolioReadinessBadge from '@/components/PortfolioReadinessBadge';
 import DriftWarning from '@/components/DriftWarning';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
+import { formatDate, formatTimestamp } from '@/lib/format';
 
 const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
 
@@ -65,7 +66,6 @@ export default function ThreadDetail() {
   if (!thread) {
     return (
       <div style={{ padding: '20px' }}>
-        <Link href="/">← Back</Link>
         <LoadError
           error={resource.error ?? 'Thread not found'}
           failures={resource.failures}
@@ -81,7 +81,6 @@ export default function ThreadDetail() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <Link href="/">← Back</Link>
       <h1>{thread.title}</h1>
 
       <section style={{ marginBottom: '30px' }}>
@@ -95,7 +94,7 @@ export default function ThreadDetail() {
         {readiness && (
           <p><strong>Portfolio:</strong> <PortfolioReadinessBadge readiness={readiness} /></p>
         )}
-        <p><strong>Created:</strong> {new Date(thread.createdAt).toLocaleDateString()}</p>
+        <p><strong>Created:</strong> {formatDate(thread.createdAt)}</p>
       </section>
 
       <section style={{ marginBottom: '30px' }}>
@@ -241,7 +240,7 @@ export default function ThreadDetail() {
           <ul>
             {thread.snapshots.map((snapshot) => (
               <li key={snapshot.id}>
-                {snapshot.snapshotType} - {new Date(snapshot.createdAt).toLocaleString()}
+                {snapshot.snapshotType} - {formatTimestamp(snapshot.createdAt)}
                 <div>{snapshot.summary}</div>
               </li>
             ))}
@@ -278,7 +277,7 @@ export default function ThreadDetail() {
             {thread.notificationEvents.slice(0, 5).map((event) => (
               <li key={event.id}>
                 {event.eventType} ({event.channel} / {event.deliveryStatus}) -{' '}
-                {new Date(event.createdAt).toLocaleString()}
+                {formatTimestamp(event.createdAt)}
               </li>
             ))}
           </ul>

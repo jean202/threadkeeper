@@ -1,10 +1,10 @@
 import { FormEvent, useState } from 'react';
-import Link from 'next/link';
 import { describeApiError, threadKeeperClient } from '@/api/client';
 import { ProviderType } from '@/types/thread';
 import ImportDetail from '@/components/ImportDetail';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
+import { formatTimestamp } from '@/lib/format';
 
 const PROVIDERS: ProviderType[] = ['CODEX', 'CLAUDE', 'GEMINI', 'GPT'];
 
@@ -49,7 +49,6 @@ export default function ProviderSettings() {
   if (!resource.data) {
     return (
       <div style={{ padding: '20px' }}>
-        <Link href="/">← Back</Link>
         <h1>Provider Connections</h1>
         <LoadError
           error={resource.error ?? 'Failed to load provider connections'}
@@ -65,7 +64,6 @@ export default function ProviderSettings() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '760px' }}>
-      <Link href="/">← Back</Link>
       <h1>Provider Connections</h1>
       <p>Where session artifacts are imported from, and how the last import went.</p>
 
@@ -87,10 +85,7 @@ export default function ProviderSettings() {
                 — {connection.status}
                 <div>Home path: {connection.homePath || '—'}</div>
                 <div>
-                  Last import:{' '}
-                  {connection.lastImportAt
-                    ? new Date(connection.lastImportAt).toLocaleString()
-                    : 'never'}
+                  Last import: {formatTimestamp(connection.lastImportAt)}
                 </div>
                 <div>Imported sessions: {connection.importedSessionCount}</div>
                 {connection.lastErrorMessage && (

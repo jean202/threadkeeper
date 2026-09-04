@@ -1,6 +1,5 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { describeApiError, threadKeeperClient } from '@/api/client';
 import { ThreadPriority } from '@/types/thread';
 
@@ -43,7 +42,6 @@ export default function NewThread() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '640px' }}>
-      <Link href="/">← Back</Link>
       <h1>New Thread</h1>
       <p>
         The original intent is stored once and never rewritten by imports -- it is what you come back

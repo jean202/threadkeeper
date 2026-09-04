@@ -4,6 +4,7 @@ import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
 import DriftWarning from '@/components/DriftWarning';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
+import { formatStaleness } from '@/lib/format';
 
 const RESUME_REASON_LABEL: Record<DashboardThread['resumeReason'], string> = {
   COMPLETED: 'Completed',
@@ -14,14 +15,6 @@ const RESUME_REASON_LABEL: Record<DashboardThread['resumeReason'], string> = {
   HIGH_PRIORITY: 'High priority',
   READY: 'Ready to continue',
 };
-
-function formatStaleness(minutes: number): string {
-  // DashboardService sends Long.MAX_VALUE for threads that never recorded activity.
-  if (!Number.isFinite(minutes) || minutes > 60 * 24 * 365) return 'no activity yet';
-  if (minutes < 60) return `${minutes}m idle`;
-  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}h idle`;
-  return `${Math.floor(minutes / (60 * 24))}d idle`;
-}
 
 function ThreadRow({ thread }: { thread: DashboardThread }) {
   return (
@@ -72,7 +65,6 @@ export default function Today() {
   if (!dashboard) {
     return (
       <div style={{ padding: '20px' }}>
-        <Link href="/">← Back</Link>
         <h1>Today</h1>
         <LoadError
           error={resource.error ?? 'Failed to load the dashboard'}
@@ -96,7 +88,6 @@ export default function Today() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <Link href="/">← Back</Link>
       <h1>Today</h1>
 
       <section style={{ marginBottom: '30px' }}>

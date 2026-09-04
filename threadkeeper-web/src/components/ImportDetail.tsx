@@ -2,10 +2,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { describeApiError, threadKeeperClient } from '@/api/client';
 import { LatestImportResponse } from '@/types/settings';
-
-function formatTime(value: string | null): string {
-  return value ? new Date(value).toLocaleString() : 'never';
-}
+import { formatTimestamp } from '@/lib/format';
 
 /**
  * The connection stamps its own timestamp after the rows are written, so the
@@ -65,9 +62,9 @@ export default function ImportDetail({ connectionId }: { connectionId: number })
             <>
               <div>Linked threads: {detail.linkedThreadCount}</div>
               <div>Sessions imported: {detail.importedSessionCount}</div>
-              <div>Last run attempted: {formatTime(detail.lastImportAt)}</div>
+              <div>Last run attempted: {formatTimestamp(detail.lastImportAt)}</div>
               <div>
-                Content last arrived: {formatTime(detail.latestSessionImportedAt)}
+                Content last arrived: {formatTimestamp(detail.latestSessionImportedAt)}
                 {broughtNothingNew(detail) && ' — the last run brought nothing new'}
               </div>
               {detail.recentSessions.length === 0 ? (
@@ -79,7 +76,7 @@ export default function ImportDetail({ connectionId }: { connectionId: number })
                     {detail.recentSessions.map((session) => (
                       <li key={session.id}>
                         {session.title ?? session.providerSessionKey} —{' '}
-                        {formatTime(session.importedAt)}
+                        {formatTimestamp(session.importedAt)}
                         {session.threadId !== null && (
                           <>
                             {' '}

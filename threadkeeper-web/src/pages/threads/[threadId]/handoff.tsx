@@ -92,7 +92,6 @@ export default function HandoffComposer() {
   if (!thread) {
     return (
       <div style={{ padding: '20px' }}>
-        <Link href="/">← Back</Link>
         <LoadError
           error={resource.error ?? error ?? 'Thread not found'}
           failures={resource.failures}
