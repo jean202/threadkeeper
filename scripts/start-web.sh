@@ -11,6 +11,10 @@ log() {
   echo "[$(date '+%F %T')] $*"
 }
 
+# Before the long-running process takes over stdout, so the rotation is not
+# fighting a live writer. A failure here must not stop the service starting.
+"$PROJECT_DIR/scripts/rotate-logs.sh" || log "log rotation failed, continuing"
+
 export NVM_DIR="$HOME/.nvm"
 # shellcheck disable=SC1091
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
