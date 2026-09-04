@@ -104,7 +104,11 @@ class NotificationAutomationSchedulerTest {
                 .andExpect(jsonPath("$[0].eventType").value("INACTIVITY"))
                 .andExpect(jsonPath("$[0].deliveryStatus").value("SENT"));
 
-        Assertions.assertTrue(lastBody.get().contains("Thread inactive"));
+        // The scheduler's job is to get a readable reminder out, so check the
+        // rendered body rather than the internal payload behind it.
+        String sent = lastBody.get();
+        Assertions.assertTrue(sent.contains("Idle"), sent);
+        Assertions.assertFalse(sent.contains("payload="), sent);
     }
 
     private static void handleExchange(HttpExchange exchange) throws IOException {

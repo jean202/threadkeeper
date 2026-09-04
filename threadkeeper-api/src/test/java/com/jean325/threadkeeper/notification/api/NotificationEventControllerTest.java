@@ -114,7 +114,13 @@ class NotificationEventControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].deliveryStatus").value("SENT"));
 
-        org.junit.jupiter.api.Assertions.assertTrue(lastBody.get().contains("Thread completed"));
+        // The webhook body is what a person reads, so assert on that rather than
+        // on the internal payload the message is built from.
+        String sent = lastBody.get();
+        org.junit.jupiter.api.Assertions.assertTrue(sent.contains("Completed"), sent);
+        org.junit.jupiter.api.Assertions.assertTrue(sent.contains("Notify completion"), sent);
+        org.junit.jupiter.api.Assertions.assertTrue(sent.contains("Follow-up"), sent);
+        org.junit.jupiter.api.Assertions.assertFalse(sent.contains("payload="), sent);
     }
 
     @Test
