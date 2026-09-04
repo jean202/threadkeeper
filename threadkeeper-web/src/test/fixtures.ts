@@ -12,7 +12,7 @@ import {
   ThreadResponse,
   ThreadSnapshotResponse,
 } from '@/types/thread';
-import { DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
+import { BriefingResponse, DashboardThread, TodayDashboardResponse } from '@/types/dashboard';
 import {
   LatestImportResponse,
   NotificationRuleResponse,
@@ -172,4 +172,9 @@ export const latestImport: LatestImportResponse = {
   linkedThreadCount: 2,
   latestSessionImportedAt: '2026-08-04T04:19:27Z',
   recentSessions: [sourceSession],
+};
+
+export const briefing: BriefingResponse = {
+  headline: 'Resume the highest-signal threads first',
+  threads: [driftingThread, dashboardThread],
 };
