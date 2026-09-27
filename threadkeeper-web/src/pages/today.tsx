@@ -68,6 +68,7 @@ export default function Today() {
         <h1>Today</h1>
         <LoadError
           error={resource.error ?? 'Failed to load the dashboard'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}

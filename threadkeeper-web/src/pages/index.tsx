@@ -72,6 +72,7 @@ export default function Home() {
       {!resource.loading && (!resource.data || searchFailed) && (
         <LoadError
           error={resource.error ?? 'Failed to load threads'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}

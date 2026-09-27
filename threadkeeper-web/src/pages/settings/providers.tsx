@@ -52,6 +52,7 @@ export default function ProviderSettings() {
         <h1>Provider Connections</h1>
         <LoadError
           error={resource.error ?? 'Failed to load provider connections'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}

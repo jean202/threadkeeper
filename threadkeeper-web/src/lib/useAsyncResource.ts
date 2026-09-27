@@ -29,9 +29,23 @@ export function isRetryable(err: unknown): boolean {
   return true;
 }
 
+/**
+ * The machine-readable `code` from an ApiErrorResponse body, when the api sent
+ * one. Lets a page tell "the database is down" from any other failure.
+ */
+export function apiErrorCode(err: unknown): string | null {
+  if (axios.isAxiosError(err)) {
+    const code = (err.response?.data as { code?: unknown } | undefined)?.code;
+    if (typeof code === 'string') return code;
+  }
+  return null;
+}
+
 export interface AsyncResource<T> {
   data: T | null;
   error: string | null;
+  /** The api's error code for `error`, if it gave one. */
+  errorCode: string | null;
   /** Nothing has settled yet, so there is nothing at all to render. */
   loading: boolean;
   /** Consecutive failures. Drives both the backoff and the retry notice. */
@@ -56,6 +70,7 @@ export function useAsyncResource<T>(
 ): AsyncResource<T> {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [failures, setFailures] = useState(0);
   const [retrying, setRetrying] = useState(false);
   const [generation, setGeneration] = useState(0);
@@ -79,12 +94,14 @@ export function useAsyncResource<T>(
         attempt = 0;
         setData(result);
         setError(null);
+        setErrorCode(null);
         setFailures(0);
         setRetrying(false);
       } catch (err) {
         if (cancelled) return;
         attempt += 1;
         setError(err instanceof Error ? err.message : 'Request failed');
+        setErrorCode(apiErrorCode(err));
         setFailures(attempt);
 
         if (isRetryable(err)) {
@@ -115,6 +132,7 @@ export function useAsyncResource<T>(
   return {
     data,
     error,
+    errorCode,
     loading: data === null && error === null,
     failures,
     retrying,

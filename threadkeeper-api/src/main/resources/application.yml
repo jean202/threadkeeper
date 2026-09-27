@@ -9,6 +9,11 @@ spring:
     url: jdbc:postgresql://localhost:5432/threadkeeper
     username: threadkeeper
     password: threadkeeper
+    hikari:
+      # Hikari waits 30s for a connection by default, so with Postgres down every
+      # request hung for half a minute before failing. A local single-user tool
+      # never queues for the pool, so a short wait only ever means "not there".
+      connection-timeout: 5000
   jpa:
     hibernate:
       ddl-auto: validate

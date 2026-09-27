@@ -68,6 +68,7 @@ export default function ThreadDetail() {
       <div style={{ padding: '20px' }}>
         <LoadError
           error={resource.error ?? 'Thread not found'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}
