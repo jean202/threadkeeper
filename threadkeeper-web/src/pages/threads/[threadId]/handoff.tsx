@@ -6,7 +6,7 @@ import { HandoffResponse, ProviderType, ThreadDetailResponse } from '@/types/thr
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 
-const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 
 const fieldStyle = { width: '100%', padding: '8px', marginBottom: '12px' } as const;
 

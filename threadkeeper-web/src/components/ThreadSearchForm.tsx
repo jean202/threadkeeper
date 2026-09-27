@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { ProviderType, ThreadPriority, ThreadSearchParams, ThreadStatus } from '@/types/thread';
 
-const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 const STATUSES: ThreadStatus[] = ['ACTIVE', 'PAUSED', 'BLOCKED', 'COMPLETED'];
 const PRIORITIES: ThreadPriority[] = ['HIGH', 'MEDIUM', 'LOW'];
 

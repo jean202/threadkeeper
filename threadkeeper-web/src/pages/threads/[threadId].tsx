@@ -10,7 +10,7 @@ import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 import { formatDate, formatTimestamp } from '@/lib/format';
 
-const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 
 interface ThreadDetailData {
   thread: ThreadDetailResponse;

@@ -4,5 +4,5 @@ public enum ProviderType {
     CLAUDE,
     CODEX,
     GEMINI,
-    GPT
+    GROK
 }

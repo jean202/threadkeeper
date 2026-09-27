@@ -6,7 +6,7 @@ import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 import { formatTimestamp } from '@/lib/format';
 
-const PROVIDERS: ProviderType[] = ['CODEX', 'CLAUDE', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CODEX', 'CLAUDE', 'GEMINI', 'GROK'];
 
 export default function ProviderSettings() {
   const [busy, setBusy] = useState<string | null>(null);
