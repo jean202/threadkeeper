@@ -146,7 +146,8 @@ export default function ThreadSearchForm({
         <button type="submit" disabled={busy} style={controlStyle}>
           {busy ? 'Searching...' : 'Search'}
         </button>
-        <button type="button" onClick={onReset} disabled={busy}>
+        {/* Never disabled: it is the way out of a search that is not coming back. */}
+        <button type="button" onClick={onReset}>
           Clear
         </button>
       </div>

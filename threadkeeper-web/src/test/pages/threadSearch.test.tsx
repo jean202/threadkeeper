@@ -145,4 +145,39 @@ describe('thread search', () => {
     release([]);
     expect(await screen.findByText('No threads match these filters.')).toBeInTheDocument();
   });
+
+  it('reports a failed search instead of staying on Searching...', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    // A 4xx is final, so no retry is scheduled and nothing would ever settle.
+    client.listThreads.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 400'), {
+        isAxiosError: true,
+        response: { status: 400 },
+      }),
+    );
+    await user.selectOptions(screen.getByLabelText('Provider'), 'CODEX');
+    await user.click(screen.getByRole('button', { name: 'Search' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('status code 400');
+    expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled();
+  });
+
+  it('lets Clear abandon a search that is still in flight', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    client.listThreads.mockReturnValueOnce(new Promise(() => {}));
+    await user.type(screen.getByLabelText('Keyword'), 'drift');
+    await user.click(screen.getByRole('button', { name: 'Search' }));
+    expect(screen.getByRole('button', { name: 'Searching...' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+
+    await waitFor(() => expect(lastQuery()).toEqual({}));
+    expect(await screen.findByRole('button', { name: 'Search' })).toBeEnabled();
+  });
 });
