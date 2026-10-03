@@ -76,9 +76,15 @@ test("parseArguments does not require --migrator-path when target is codex-only"
   assert.equal(opts.cliPath, undefined);  // no throw, cliPath simply absent
 });
 
-test("parseArguments still requires --migrator-path when target includes claude", () => {
+test("parseArguments does not require --migrator-path for codex and claude, which are read directly", () => {
+  const opts = parseArguments(["--target", "codex,claude", "--claude-home", "/tmp/claude"]);
+  assert.equal(opts.cliPath, undefined);
+  assert.equal(opts.claudeHome, "/tmp/claude");
+});
+
+test("parseArguments still requires --migrator-path for a target only the migrator knows", () => {
   assert.throws(
-    () => parseArguments(["--target", "codex,claude"]),
+    () => parseArguments(["--target", "codex,gemini"]),
     /migrator-path is required/
   );
 });

@@ -12,9 +12,17 @@ function safeParseLine(line) {
   try { return JSON.parse(line); } catch { return null; }
 }
 
-function deriveProjectKey(cwd) {
+/**
+ * Claude Code runs worktree sessions in `<repo>/.claude/worktrees/<name>`, so
+ * the basename would name the worktree, not the project. Strip that suffix so
+ * a worktree session lands in the same project as the main checkout.
+ */
+const WORKTREE_SUFFIX_RE = /\/\.claude\/worktrees\/[^/]+\/?$/;
+
+export function deriveProjectKey(cwd) {
   if (typeof cwd !== "string" || cwd.trim() === "") return "unknown";
-  const base = path.basename(cwd).toLowerCase().replace(/[^a-z0-9._-]/g, "-");
+  const projectDir = cwd.replace(WORKTREE_SUFFIX_RE, "");
+  const base = path.basename(projectDir).toLowerCase().replace(/[^a-z0-9._-]/g, "-");
   if (!base) return "unknown";
   return sanitizeString(base, PROJECT_KEY_MAX);
 }

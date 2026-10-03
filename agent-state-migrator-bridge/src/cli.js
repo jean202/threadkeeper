@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { importSourceSessions } from "./index.js";
+import { DIRECT_TARGETS, importSourceSessions } from "./index.js";
 
 export function parseArguments(argv) {
   const options = {
@@ -33,6 +33,10 @@ export function parseArguments(argv) {
         options.codexHome = value;
         index += 1;
         break;
+      case "--claude-home":
+        options.claudeHome = value;
+        index += 1;
+        break;
       case "--include-sensitive":
         options.includeSensitive = true;
         break;
@@ -45,7 +49,7 @@ export function parseArguments(argv) {
     .split(",")
     .map((t) => t.trim())
     .filter(Boolean);
-  const needsMigrator = targets.some((t) => t !== "codex");
+  const needsMigrator = targets.some((t) => !DIRECT_TARGETS.includes(t));
   if (needsMigrator && !options.cliPath) {
     throw new Error("--migrator-path is required");
   }

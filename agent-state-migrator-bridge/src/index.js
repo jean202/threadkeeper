@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import { enumerateCodexSessions } from "./codex-enumerator.js";
+import { enumerateClaudeSessions } from "./claude-enumerator.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -17,6 +18,9 @@ function toProviderEnum(provider) {
   return provider.toUpperCase();
 }
 
+/** Targets whose sessions are read straight from disk, without the migrator. */
+export const DIRECT_TARGETS = ["codex", "claude"];
+
 function targetsList(target) {
   return String(target ?? "").split(",").map((t) => t.trim()).filter(Boolean);
 }
@@ -25,9 +29,14 @@ function defaultCodexSessionsRoot() {
   return path.join(os.homedir(), ".codex", "sessions");
 }
 
-function buildCodexSourceSessionsFromEnumeration(enumeration) {
+function defaultClaudeProjectsRoot() {
+  return path.join(os.homedir(), ".claude", "projects");
+}
+
+/** Both enumerators emit the same session shape; only the provider differs. */
+function buildSourceSessionsFromEnumeration(enumeration) {
   return enumeration.sessions.map((s) => ({
-    provider: "CODEX",
+    provider: s.provider,
     providerSessionKey: s.providerSessionKey,
     sourceType: s.sourceType,
     sourcePath: s.sourcePath,
@@ -120,13 +129,23 @@ export async function importSourceSessions(options) {
   if (targets.includes("codex")) {
     const root = options.codexHome ?? defaultCodexSessionsRoot();
     const enumeration = enumerateCodexSessions(root);
-    sourceSessions.push(...buildCodexSourceSessionsFromEnumeration(enumeration));
+    sourceSessions.push(...buildSourceSessionsFromEnumeration(enumeration));
     summary.codex = enumeration.summary;
   }
 
-  const nonCodex = targets.filter((t) => t !== "codex");
-  if (nonCodex.length > 0 && options.cliPath) {
-    const inspectResults = await inspectProviders({ ...options, target: nonCodex.join(",") });
+  // Claude Code keeps one transcript per session, so read them directly like
+  // Codex rollouts. The migrator's inspect output is per artifact group, which
+  // collapsed every session of a project into a single untitled thread.
+  if (targets.includes("claude")) {
+    const root = options.claudeHome ?? defaultClaudeProjectsRoot();
+    const enumeration = enumerateClaudeSessions(root);
+    sourceSessions.push(...buildSourceSessionsFromEnumeration(enumeration));
+    summary.claude = enumeration.summary;
+  }
+
+  const viaMigrator = targets.filter((t) => !DIRECT_TARGETS.includes(t));
+  if (viaMigrator.length > 0 && options.cliPath) {
+    const inspectResults = await inspectProviders({ ...options, target: viaMigrator.join(",") });
     const mapped = mapInspectResultsToCanonicalImportPayload(inspectResults);
     sourceSessions.push(...mapped.sourceSessions);
   }
