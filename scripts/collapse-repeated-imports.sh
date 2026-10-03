@@ -13,6 +13,8 @@
 #   - every source session on it is a per-session import (source_type 'session')
 #     and none is already a folded `repeat-...` session
 #   - it has no handoff, i.e. nobody has started working from it
+#   - its title is a real prompt, not the "<project> session <date>"
+#     placeholder given to sessions that had none
 #
 # Usage:
 #   scripts/collapse-repeated-imports.sh           # preview only, changes nothing
@@ -45,6 +47,10 @@ with imported as (
           where s.thread_id = t.id
             and (s.source_type is distinct from 'session' or s.provider_session_key like 'repeat-%')
       )
+      -- '<project> session <date>' is the placeholder for a session with no
+      -- prompt to name it by. Sharing it is not a sign of a template.
+      and not (starts_with(t.title, t.project_key || ' session ')
+               and t.title ~ ' session [0-9]{4}-[0-9]{2}-[0-9]{2}\$')
       and not exists (select 1 from handoffs h where h.thread_id = t.id)
       and not exists (
           select 1 from handoffs h

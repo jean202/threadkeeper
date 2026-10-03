@@ -34,13 +34,20 @@ export function collapseRepeatedPrompts(sessions, { minRepeats } = {}) {
   // Two is the floor: at one, every session would be "repeated".
   const threshold = Number.isInteger(minRepeats) && minRepeats >= 2 ? minRepeats : DEFAULT_MIN_REPEATS;
   const groups = new Map();
+  const out = [];
   for (const session of sessions) {
+    // No prompt means the title is the "<project> session <date>" placeholder,
+    // which says nothing about what ran. Sharing it is no sign of a template:
+    // those are distinct sessions that just could not be named.
+    if (!session.originalIntent) {
+      out.push(session);
+      continue;
+    }
     const key = groupKey(session);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(session);
   }
 
-  const out = [];
   const collapsed = [];
   for (const [key, members] of groups) {
     if (members.length < threshold) {

@@ -75,3 +75,13 @@ test("honours a custom threshold and ignores a nonsensical one", () => {
   assert.equal(collapseRepeatedPrompts(input, { minRepeats: Number.NaN }).sessions.length, 2);
   assert.equal(collapseRepeatedPrompts(input, { minRepeats: 1 }).sessions.length, 2);
 });
+
+test("never folds sessions that only share the untitled placeholder", () => {
+  const untitled = "record-to-evidence session 2026-07-10";
+  const input = [1, 2, 3, 4].map((n) =>
+    session(`u${n}`, untitled, `2026-07-10T0${n}:00:00Z`, { originalIntent: null }),
+  );
+  const { sessions, collapsed } = collapseRepeatedPrompts(input);
+  assert.equal(sessions.length, 4);
+  assert.equal(collapsed.length, 0);
+});
