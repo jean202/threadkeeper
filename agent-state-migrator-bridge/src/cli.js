@@ -37,6 +37,10 @@ export function parseArguments(argv) {
         options.claudeHome = value;
         index += 1;
         break;
+      case "--min-repeats":
+        options.minRepeats = Number(value);
+        index += 1;
+        break;
       case "--include-sensitive":
         options.includeSensitive = true;
         break;

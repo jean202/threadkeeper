@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { enumerateCodexSessions } from "./codex-enumerator.js";
 import { enumerateClaudeSessions } from "./claude-enumerator.js";
+import { collapseRepeatedPrompts } from "./repeat-collapser.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -142,6 +143,13 @@ export async function importSourceSessions(options) {
     sourceSessions.push(...buildSourceSessionsFromEnumeration(enumeration));
     summary.claude = enumeration.summary;
   }
+
+  // Automated runs (a review hook firing `codex exec` on every change) would
+  // otherwise land as a wall of identical threads, one per run.
+  const directSessions = collapseRepeatedPrompts(sourceSessions, { minRepeats: options.minRepeats });
+  sourceSessions.length = 0;
+  sourceSessions.push(...directSessions.sessions);
+  summary.repeatedPrompts = directSessions.collapsed;
 
   const viaMigrator = targets.filter((t) => !DIRECT_TARGETS.includes(t));
   if (viaMigrator.length > 0 && options.cliPath) {
