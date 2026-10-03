@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { ProviderType, ThreadPriority, ThreadSearchParams, ThreadStatus } from '@/types/thread';
 
-const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 const STATUSES: ThreadStatus[] = ['ACTIVE', 'PAUSED', 'BLOCKED', 'COMPLETED'];
 const PRIORITIES: ThreadPriority[] = ['HIGH', 'MEDIUM', 'LOW'];
 
@@ -56,6 +56,17 @@ export default function ThreadSearchForm({
 
   const update = (patch: Partial<FormState>) => setForm((current) => ({ ...current, ...patch }));
 
+  /**
+   * The dropdowns apply as soon as they change: picking a value is already a
+   * complete choice, unlike a half-typed keyword. The search carries the whole
+   * form, so text already typed into the other fields applies along with it.
+   */
+  const updateAndSearch = (patch: Partial<FormState>) => {
+    const next = { ...form, ...patch };
+    setForm(next);
+    onSearch(toParams(next));
+  };
+
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     onSearch(toParams(form));
@@ -91,7 +102,7 @@ export default function ThreadSearchForm({
         <select
           id="provider"
           value={form.provider}
-          onChange={(e) => update({ provider: e.target.value })}
+          onChange={(e) => updateAndSearch({ provider: e.target.value })}
           style={controlStyle}
         >
           <option value="">Any</option>
@@ -105,7 +116,7 @@ export default function ThreadSearchForm({
         <select
           id="status"
           value={form.status}
-          onChange={(e) => update({ status: e.target.value })}
+          onChange={(e) => updateAndSearch({ status: e.target.value })}
           style={controlStyle}
         >
           <option value="">Any</option>
@@ -119,7 +130,7 @@ export default function ThreadSearchForm({
         <select
           id="priority"
           value={form.priority}
-          onChange={(e) => update({ priority: e.target.value })}
+          onChange={(e) => updateAndSearch({ priority: e.target.value })}
           style={controlStyle}
         >
           <option value="">Any</option>
@@ -133,7 +144,7 @@ export default function ThreadSearchForm({
         <select
           id="activeWithinDays"
           value={form.activeWithinDays}
-          onChange={(e) => update({ activeWithinDays: e.target.value })}
+          onChange={(e) => updateAndSearch({ activeWithinDays: e.target.value })}
           style={controlStyle}
         >
           <option value="">Any time</option>
@@ -146,7 +157,8 @@ export default function ThreadSearchForm({
         <button type="submit" disabled={busy} style={controlStyle}>
           {busy ? 'Searching...' : 'Search'}
         </button>
-        <button type="button" onClick={onReset} disabled={busy}>
+        {/* Never disabled: it is the way out of a search that is not coming back. */}
+        <button type="button" onClick={onReset}>
           Clear
         </button>
       </div>

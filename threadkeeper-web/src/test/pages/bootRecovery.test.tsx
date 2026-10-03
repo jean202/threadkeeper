@@ -85,4 +85,30 @@ describe('cold boot recovery', () => {
     await act(() => vi.advanceTimersByTimeAsync(60_000));
     expect(client.getTodayDashboard).toHaveBeenCalledTimes(1);
   });
+
+  it('points at Docker when the api answers but the database is down', async () => {
+    vi.useFakeTimers();
+    const databaseDown = Object.assign(new Error('Request failed with status code 503'), {
+      isAxiosError: true,
+      response: {
+        status: 503,
+        data: { code: 'DATABASE_UNAVAILABLE', message: 'The database is not reachable.', fieldErrors: [] },
+      },
+    });
+    client.getTodayDashboard.mockRejectedValueOnce(databaseDown).mockResolvedValue(todayDashboard);
+
+    render(<Today />);
+    await settle();
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('The database is not reachable.');
+    expect(alert).toHaveTextContent('Docker Desktop');
+    // A 503 is worth waiting out: once Docker is back the page heals itself.
+    expect(alert).toHaveTextContent('Retrying in 1s (1 failed)');
+
+    await act(() => vi.advanceTimersByTimeAsync(1000));
+    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });
+

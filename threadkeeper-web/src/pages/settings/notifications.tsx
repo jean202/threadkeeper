@@ -82,6 +82,7 @@ export default function NotificationSettings() {
         <h1>Notifications &amp; Rules</h1>
         <LoadError
           error={resource.error ?? 'Failed to load notification settings'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}

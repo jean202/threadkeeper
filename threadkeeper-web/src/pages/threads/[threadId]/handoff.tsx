@@ -6,7 +6,7 @@ import { HandoffResponse, ProviderType, ThreadDetailResponse } from '@/types/thr
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 
-const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 
 const fieldStyle = { width: '100%', padding: '8px', marginBottom: '12px' } as const;
 
@@ -94,6 +94,7 @@ export default function HandoffComposer() {
       <div style={{ padding: '20px' }}>
         <LoadError
           error={resource.error ?? error ?? 'Thread not found'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}

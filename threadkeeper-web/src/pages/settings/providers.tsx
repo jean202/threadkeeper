@@ -6,7 +6,7 @@ import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 import { formatTimestamp } from '@/lib/format';
 
-const PROVIDERS: ProviderType[] = ['CODEX', 'CLAUDE', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CODEX', 'CLAUDE', 'GEMINI', 'GROK'];
 
 export default function ProviderSettings() {
   const [busy, setBusy] = useState<string | null>(null);
@@ -52,6 +52,7 @@ export default function ProviderSettings() {
         <h1>Provider Connections</h1>
         <LoadError
           error={resource.error ?? 'Failed to load provider connections'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}

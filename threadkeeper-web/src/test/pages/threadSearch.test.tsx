@@ -68,15 +68,14 @@ describe('thread search', () => {
     await user.selectOptions(screen.getByLabelText('Active within'), '7');
     await user.click(screen.getByRole('button', { name: 'Search' }));
 
-    await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(2));
-    expect(lastQuery()).toEqual({
+    await waitFor(() => expect(lastQuery()).toEqual({
       q: 'handoff',
       projectKey: 'threadkeeper',
       provider: 'CODEX',
       status: 'BLOCKED',
       priority: 'HIGH',
       activeWithinDays: 7,
-    });
+    }));
   });
 
   it('treats whitespace as an empty field rather than a filter', async () => {
@@ -144,5 +143,66 @@ describe('thread search', () => {
 
     release([]);
     expect(await screen.findByText('No threads match these filters.')).toBeInTheDocument();
+  });
+
+  it('reports a failed search instead of staying on Searching...', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    // A 4xx is final, so no retry is scheduled and nothing would ever settle.
+    client.listThreads.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 400'), {
+        isAxiosError: true,
+        response: { status: 400 },
+      }),
+    );
+    await user.selectOptions(screen.getByLabelText('Provider'), 'CODEX');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('status code 400');
+    expect(screen.getByRole('button', { name: 'Search' })).toBeEnabled();
+  });
+
+  it('lets Clear abandon a search that is still in flight', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    client.listThreads.mockReturnValueOnce(new Promise(() => {}));
+    await user.type(screen.getByLabelText('Keyword'), 'drift');
+    await user.click(screen.getByRole('button', { name: 'Search' }));
+    expect(screen.getByRole('button', { name: 'Searching...' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+
+    await waitFor(() => expect(lastQuery()).toEqual({}));
+    expect(await screen.findByRole('button', { name: 'Search' })).toBeEnabled();
+  });
+
+  it('applies a dropdown as soon as it changes, without pressing Search', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    await user.selectOptions(screen.getByLabelText('Provider'), 'CODEX');
+
+    await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(2));
+    expect(lastQuery()).toMatchObject({ provider: 'CODEX', q: undefined });
+
+    // Back to Any drops the filter again.
+    await user.selectOptions(screen.getByLabelText('Provider'), '');
+    await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(3));
+    expect(lastQuery()?.provider).toBeUndefined();
+  });
+
+  it('does not search on every keystroke in the text fields', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    await user.type(screen.getByLabelText('Keyword'), 'drift');
+    await user.type(screen.getByLabelText('Project'), 'billing');
+
+    expect(client.listThreads).toHaveBeenCalledTimes(1);
   });
 });

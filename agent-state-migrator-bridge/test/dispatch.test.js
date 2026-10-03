@@ -6,6 +6,7 @@ import { importSourceSessions } from "../src/index.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const codexEnumerateRoot = path.join(here, "fixtures", "codex-enumerate");
+const claudeProjectsRoot = path.join(here, "fixtures", "claude-projects");
 
 test("importSourceSessions with target=codex uses enumerator and emits rich fields", async () => {
   const payload = await importSourceSessions({
@@ -32,14 +33,17 @@ test("importSourceSessions with target=codex uses enumerator and emits rich fiel
   assert.equal(payload.summary.codex.skippedFiles, 1);
 });
 
-test("importSourceSessions target=codex,claude with no cliPath returns only codex sessions (no shell-out)", async () => {
+test("importSourceSessions target=codex,claude reads both from disk, with no migrator", async () => {
   const payload = await importSourceSessions({
     target: "codex,claude",
     codexHome: codexEnumerateRoot,
-    // no cliPath → non-codex branch must be skipped, not crash
+    claudeHome: claudeProjectsRoot,
+    // no cliPath: neither target needs the migrator any more
   });
-  assert.equal(payload.providers.includes("CODEX"), true);
-  assert.equal(payload.providers.includes("CLAUDE"), false);
-  assert.equal(payload.sourceSessions.length, 2);
-  assert.equal(payload.sourceSessions.every((s) => s.provider === "CODEX"), true);
+  assert.deepEqual([...payload.providers].sort(), ["CLAUDE", "CODEX"]);
+  assert.equal(payload.sourceSessions.filter((s) => s.provider === "CODEX").length, 2);
+  const claude = payload.sourceSessions.filter((s) => s.provider === "CLAUDE");
+  assert.equal(claude.length, 3);
+  assert.ok(claude.every((s) => s.sourceType === "session"));
+  assert.equal(payload.summary.claude.emitted, 3);
 });

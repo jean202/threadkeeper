@@ -10,7 +10,7 @@ import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 import { formatDate, formatTimestamp } from '@/lib/format';
 
-const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 
 interface ThreadDetailData {
   thread: ThreadDetailResponse;
@@ -68,6 +68,7 @@ export default function ThreadDetail() {
       <div style={{ padding: '20px' }}>
         <LoadError
           error={resource.error ?? 'Thread not found'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}
