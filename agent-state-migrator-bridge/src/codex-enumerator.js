@@ -218,6 +218,28 @@ export function extractSessionFromFile(filePath) {
   };
 }
 
+/**
+ * Session ids of the delegated sub-sessions under `rootDir` -- the ones
+ * extractSessionFromFile leaves out. For cleaning up threads imported before
+ * they were skipped.
+ */
+export function listDelegatedSubSessionIds(rootDir) {
+  const ids = [];
+  for (const file of findRolloutFiles(rootDir)) {
+    try {
+      const lines = readFileSync(file, "utf8").split(/\r?\n/).filter((line) => line.length > 0);
+      const meta = safeParseLine(lines[0] ?? "");
+      if (meta?.type !== "session_meta" || !meta.payload?.id) continue;
+      if (findFirstUserMessage(lines) === null && isDelegatedSubSession(lines)) {
+        ids.push(meta.payload.id);
+      }
+    } catch {
+      // An unreadable file is not evidence of anything; leave it out.
+    }
+  }
+  return ids;
+}
+
 export function enumerateCodexSessions(rootDir) {
   const files = findRolloutFiles(rootDir);
   const sessions = [];

@@ -193,3 +193,18 @@ test("keeps a session the user drove even if it messaged agents", () => {
   const result = extractSessionFromFile(fixture("user-driven-with-agents.jsonl"));
   assert.equal(result.originalIntent, "대화 예시 캡쳐로 모델 성능 개선하기");
 });
+
+test("lists the delegated sub-sessions it leaves out, and nothing else", async () => {
+  const { mkdtempSync, mkdirSync, copyFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { listDelegatedSubSessionIds } = await import("../src/codex-enumerator.js");
+  // A ~/.codex/sessions-shaped tree: only rollout-*.jsonl files are considered.
+  const root = mkdtempSync(path.join(tmpdir(), "codex-sessions-"));
+  const day = path.join(root, "2026", "09", "17");
+  mkdirSync(day, { recursive: true });
+  for (const name of ["delegated-subsession", "user-driven-with-agents", "no-messages", "happy"]) {
+    copyFileSync(fixture(`${name}.jsonl`), path.join(day, `rollout-${name}.jsonl`));
+  }
+
+  assert.deepEqual(listDelegatedSubSessionIds(root), ["efefefef-1111-2222-3333-444444444444"]);
+});
