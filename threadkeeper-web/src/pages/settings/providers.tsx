@@ -101,6 +101,10 @@ export default function ProviderSettings() {
                         const imported = await threadKeeperClient.runProviderImport(connection.id, {
                           migratorPath,
                           bridgePath: bridgePath || undefined,
+                          // Each connection imports only its own provider. Left
+                          // unset, the api defaults to "codex,claude" for every
+                          // connection, so running both filed each session twice.
+                          target: connection.provider.toLowerCase(),
                           includeSensitive: false,
                         });
                         return `Imported ${imported.length} session(s).`;

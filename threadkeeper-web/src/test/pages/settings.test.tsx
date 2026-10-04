@@ -158,6 +158,22 @@ describe('provider settings', () => {
     expect(screen.getByRole('button', { name: 'Run Import' })).toBeEnabled();
   });
 
+  it('imports only the provider of the connection whose button was pressed', async () => {
+    client.listProviderConnections.mockResolvedValue([
+      providerConnection,
+      { ...providerConnection, id: 2, provider: 'CLAUDE' as const },
+    ]);
+    client.runProviderImport.mockResolvedValue([]);
+    render(<ProviderSettings />);
+    await screen.findByRole('heading', { name: 'Configured providers (2)' });
+
+    await userEvent.type(screen.getByLabelText('agent-state-migrator path'), '/opt/migrator');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Run Import' })[1]);
+
+    await waitFor(() => expect(client.runProviderImport).toHaveBeenCalledTimes(1));
+    expect(client.runProviderImport).toHaveBeenCalledWith(2, expect.objectContaining({ target: 'claude' }));
+  });
+
   it('reports what a reset actually removed', async () => {
     client.resetConnectionImports.mockResolvedValue({
       threadsDeleted: 2,
