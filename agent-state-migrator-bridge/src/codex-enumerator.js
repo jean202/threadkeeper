@@ -34,9 +34,23 @@ export function deriveProjectKey(cwd) {
  * block, so they are stripped from the front rather than the whole text being
  * judged by how it starts.
  */
+/**
+ * Only the tags Codex itself writes. A user can wrap their own prompt in a
+ * tag (a templated "<task>...</task>"), and stripping any tag at all threw
+ * those prompts away.
+ */
+const CODEX_WRAPPER_TAGS = [
+  "environment_context",
+  "user_instructions",
+  "permissions instructions",
+  "INSTRUCTIONS",
+  "turn_aborted",
+  "user_shell_command",
+];
+
 const LEADING_WRAPPER_RES = [
   /^\s*# AGENTS\.md instructions[^\n]*\n+\s*<INSTRUCTIONS>[\s\S]*?<\/INSTRUCTIONS>/,
-  /^\s*<([a-z_][a-z0-9_ -]*)>[\s\S]*?<\/\1>/i,
+  ...CODEX_WRAPPER_TAGS.map((tag) => new RegExp(`^\\s*<${tag}>[\\s\\S]*?</${tag}>`)),
 ];
 
 function stripLeadingWrappers(text) {

@@ -175,3 +175,10 @@ test("looks past wrapper blocks and wrapper sections at the head of a block", ()
   assert.equal(result.originalIntent, "대화 예시 캡쳐로 모델 성능 개선하기");
   assert.equal(result.nextAction, "캡쳐 3장을 분석했어요.");
 });
+
+test("keeps a prompt the user wrapped in a tag of their own", () => {
+  // Only Codex's own wrapper tags are stripped; "<task>" is the user's.
+  const result = extractSessionFromFile(fixture("tagged-prompt.jsonl"));
+  assert.equal(result.originalIntent, "<task>\n스코어 서비스 어드민 작업 범위 확인\n</task>");
+  assert.equal(result.title, "<task> 스코어 서비스 어드민 작업 범위 확인 </task>");
+});
