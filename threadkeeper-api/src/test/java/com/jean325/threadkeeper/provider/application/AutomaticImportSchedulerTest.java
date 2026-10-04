@@ -52,9 +52,24 @@ class AutomaticImportSchedulerTest {
     }
 
     @Test
-    void blankMigratorPathDoesNotImport() {
+    void blankMigratorPathStillImportsCodexAndClaude() {
         ProviderConnectionService service = Mockito.mock(ProviderConnectionService.class);
+        when(service.listConnections()).thenReturn(List.of(connection(1L, "ACTIVE", null)));
         var scheduler = new AutomaticImportScheduler(service, props(true, "  "), clock);
+
+        scheduler.runDueImport();
+
+        // Both are read from disk by the bridge, so the migrator is not needed.
+        verify(service, times(1)).runImport(eq(1L), any());
+    }
+
+    @Test
+    void blankMigratorPathSkipsATargetThatNeedsIt() {
+        ProviderConnectionService service = Mockito.mock(ProviderConnectionService.class);
+        when(service.listConnections()).thenReturn(List.of(connection(1L, "ACTIVE", null)));
+        ImportSchedulerProperties properties = props(true, "  ");
+        properties.setTarget("codex,gemini");
+        var scheduler = new AutomaticImportScheduler(service, properties, clock);
 
         scheduler.runDueImport();
 

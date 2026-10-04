@@ -66,6 +66,22 @@ class ProcessBridgeImportClientTest {
     }
 
     @Test
+    void passesTheMigratorPathWhenGiven() {
+        assertThat(client.buildCommand(request(), null)).containsSequence("--migrator-path", "/tmp/migrator");
+    }
+
+    @Test
+    void omitsTheMigratorPathWhenBlank() {
+        // Codex and Claude need no migrator; a blank path must not reach the bridge as an argument.
+        RunProviderImportRequest noMigrator = new RunProviderImportRequest(" ", null, null, "claude", false);
+
+        List<String> command = client.buildCommand(noMigrator, null);
+
+        assertThat(command).doesNotContain("--migrator-path");
+        assertThat(command).containsSequence("--target", "claude");
+    }
+
+    @Test
     void transformPayloadInjectsMetadataJsonAndPreservesRichFields() throws Exception {
         // Mirrors Spring's auto-configured ObjectMapper, which disables FAIL_ON_UNKNOWN_PROPERTIES.
         ObjectMapper mapper = new ObjectMapper()

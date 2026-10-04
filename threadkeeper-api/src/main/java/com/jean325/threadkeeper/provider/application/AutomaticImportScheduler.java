@@ -39,8 +39,17 @@ public class AutomaticImportScheduler {
         if (!properties.isEnabled()) {
             return;
         }
-        if (properties.getMigratorPath() == null || properties.getMigratorPath().isBlank()) {
-            log.warn("Automatic import enabled but migrator-path is blank; skipping.");
+        RunProviderImportRequest request = new RunProviderImportRequest(
+                properties.getMigratorPath(),
+                properties.getBridgePath(),
+                properties.getProfile(),
+                properties.getTarget(),
+                properties.isIncludeSensitive()
+        );
+        // Codex and Claude are read from disk; only other targets need the migrator.
+        if (request.needsMigrator() && !request.hasMigratorPath()) {
+            log.warn("Automatic import: target '{}' needs migrator-path, which is blank; skipping.",
+                    request.targetOrDefault());
             return;
         }
 
@@ -61,16 +70,7 @@ public class AutomaticImportScheduler {
         // (failed imports roll back, so lastImportAt would otherwise stay stale and retry every tick).
         lastAttempt = clock.instant();
         try {
-            providerConnectionService.runImport(
-                    connection.id(),
-                    new RunProviderImportRequest(
-                            properties.getMigratorPath(),
-                            properties.getBridgePath(),
-                            properties.getProfile(),
-                            properties.getTarget(),
-                            properties.isIncludeSensitive()
-                    )
-            );
+            providerConnectionService.runImport(connection.id(), request);
             log.info("Automatic import completed for connection id={}.", connection.id());
         } catch (Exception e) {
             log.warn("Automatic import failed for connection id={}: {}", connection.id(), e.getMessage());
