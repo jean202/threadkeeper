@@ -150,3 +150,61 @@ test("enumerateCodexSessions walks a root, extracts sessions, returns summary", 
     "dddddddd-1111-2222-3333-444444444444",
   ]);
 });
+
+test("finds the prompt in rollouts that only log response_items", () => {
+  // Older rollouts and some clients (the VS Code extension) never write the
+  // event_msg, which left these sessions titled "<project> session <date>".
+  const result = extractSessionFromFile(fixture("response-items-only.jsonl"));
+  // The AGENTS.md and environment blocks come first and are not the prompt.
+  assert.equal(result.originalIntent, "녹음 내용 녹취한 것 중에 강수창 발언만 추려줘");
+  assert.equal(result.title, "녹음 내용 녹취한 것 중에 강수창 발언만 추려줘");
+  assert.equal(result.nextAction, "발언 12개를 찾았어요. 다음으로 시간순으로 정리할게요.");
+  assert.equal(result.projectKey, "record-to-evidence");
+});
+
+test("still prefers the event_msg prompt when both are present", () => {
+  // The response_item can carry client-expanded extras; the event_msg is what was typed.
+  const result = extractSessionFromFile(fixture("both-formats.jsonl"));
+  assert.equal(result.originalIntent, "Fix the login bug please.");
+});
+
+test("looks past wrapper blocks and wrapper sections at the head of a block", () => {
+  // Newer rollouts put AGENTS.md and the environment in their own blocks, and
+  // can prefix the typed prompt with another environment section.
+  const result = extractSessionFromFile(fixture("wrapper-blocks.jsonl"));
+  assert.equal(result.originalIntent, "대화 예시 캡쳐로 모델 성능 개선하기");
+  assert.equal(result.nextAction, "캡쳐 3장을 분석했어요.");
+});
+
+test("keeps a prompt the user wrapped in a tag of their own", () => {
+  // Only Codex's own wrapper tags are stripped; "<task>" is the user's.
+  const result = extractSessionFromFile(fixture("tagged-prompt.jsonl"));
+  assert.equal(result.originalIntent, "<task>\n스코어 서비스 어드민 작업 범위 확인\n</task>");
+  assert.equal(result.title, "<task> 스코어 서비스 어드민 작업 범위 확인 </task>");
+});
+
+test("leaves out a session another agent delegated, which nobody typed into", () => {
+  // Its only user turns are Codex's own blocks; the task came as agent_message.
+  assert.equal(extractSessionFromFile(fixture("delegated-subsession.jsonl")), null);
+});
+
+test("keeps a session the user drove even if it messaged agents", () => {
+  // A typed prompt means a person is behind it, whatever else it contains.
+  const result = extractSessionFromFile(fixture("user-driven-with-agents.jsonl"));
+  assert.equal(result.originalIntent, "대화 예시 캡쳐로 모델 성능 개선하기");
+});
+
+test("lists the delegated sub-sessions it leaves out, and nothing else", async () => {
+  const { mkdtempSync, mkdirSync, copyFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { listDelegatedSubSessionIds } = await import("../src/codex-enumerator.js");
+  // A ~/.codex/sessions-shaped tree: only rollout-*.jsonl files are considered.
+  const root = mkdtempSync(path.join(tmpdir(), "codex-sessions-"));
+  const day = path.join(root, "2026", "09", "17");
+  mkdirSync(day, { recursive: true });
+  for (const name of ["delegated-subsession", "user-driven-with-agents", "no-messages", "happy"]) {
+    copyFileSync(fixture(`${name}.jsonl`), path.join(day, `rollout-${name}.jsonl`));
+  }
+
+  assert.deepEqual(listDelegatedSubSessionIds(root), ["efefefef-1111-2222-3333-444444444444"]);
+});

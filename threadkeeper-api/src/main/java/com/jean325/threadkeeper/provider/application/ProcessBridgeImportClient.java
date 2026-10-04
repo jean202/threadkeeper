@@ -55,12 +55,14 @@ public class ProcessBridgeImportClient implements BridgeImportClient {
         List<String> command = new ArrayList<>();
         command.add("node");
         command.add("src/cli.js");
-        command.add("--migrator-path");
-        command.add(request.migratorPath());
+        if (request.hasMigratorPath()) {
+            command.add("--migrator-path");
+            command.add(request.migratorPath());
+        }
         command.add("--profile");
         command.add(request.profile() == null ? "full" : request.profile());
         command.add("--target");
-        command.add(request.target() == null ? "codex,claude" : request.target());
+        command.add(request.targetOrDefault());
         if (request.includeSensitive()) {
             command.add("--include-sensitive");
         }

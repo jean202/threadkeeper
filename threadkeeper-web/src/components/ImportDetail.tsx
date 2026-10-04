@@ -36,7 +36,7 @@ export default function ImportDetail({ connectionId }: { connectionId: number })
     try {
       setDetail(await threadKeeperClient.getLatestImport(connectionId));
     } catch (err) {
-      setError(describeApiError(err, 'Failed to load import details'));
+      setError(describeApiError(err, '가져오기 상세를 불러오지 못했어요'));
     } finally {
       setLoading(false);
     }
@@ -52,26 +52,26 @@ export default function ImportDetail({ connectionId }: { connectionId: number })
   return (
     <div>
       <button onClick={toggle} aria-expanded={open}>
-        {open ? 'Hide import details' : 'Import details'}
+        {open ? '가져오기 상세 닫기' : '가져오기 상세'}
       </button>
       {open && (
         <div style={{ marginTop: '8px', paddingLeft: '12px', borderLeft: '2px solid #ddd' }}>
-          {loading && <p>Loading import details...</p>}
-          {error && <p role="alert">Error: {error}</p>}
+          {loading && <p>불러오는 중...</p>}
+          {error && <p role="alert">오류: {error}</p>}
           {detail && !loading && (
             <>
-              <div>Linked threads: {detail.linkedThreadCount}</div>
-              <div>Sessions imported: {detail.importedSessionCount}</div>
-              <div>Last run attempted: {formatTimestamp(detail.lastImportAt)}</div>
+              <div>연결된 스레드: {detail.linkedThreadCount}개</div>
+              <div>가져온 세션: {detail.importedSessionCount}개</div>
+              <div>마지막 실행: {formatTimestamp(detail.lastImportAt)}</div>
               <div>
-                Content last arrived: {formatTimestamp(detail.latestSessionImportedAt)}
-                {broughtNothingNew(detail) && ' — the last run brought nothing new'}
+                마지막으로 새 내용이 들어온 때: {formatTimestamp(detail.latestSessionImportedAt)}
+                {broughtNothingNew(detail) && ' — 마지막 실행에서는 새로 가져온 게 없어요'}
               </div>
               {detail.recentSessions.length === 0 ? (
-                <p>No sessions imported yet.</p>
+                <p>아직 가져온 세션이 없어요.</p>
               ) : (
                 <>
-                  <div>Most recent sessions:</div>
+                  <div>최근 세션:</div>
                   <ul>
                     {detail.recentSessions.map((session) => (
                       <li key={session.id}>
@@ -81,7 +81,7 @@ export default function ImportDetail({ connectionId }: { connectionId: number })
                           <>
                             {' '}
                             <Link href={`/threads/${session.threadId}`}>
-                              thread {session.threadId}
+                              스레드 {session.threadId}
                             </Link>
                           </>
                         )}

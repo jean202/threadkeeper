@@ -50,13 +50,13 @@ console.log(`created thread #${threadId}`);
 
 // 2. Pin a next action, record progress, and hand off.
 await page.fill('#nextAction', 'Verify persistence');
-await page.click('button:has-text("Pin Next Action")');
+await page.click('button:has-text("다음 할 일 저장")');
 await page.waitForTimeout(1000);
 await page.fill('#progressNote', 'Added retry backoff to the billing webhook handler.');
-await page.click('button:has-text("Add Snapshot")');
+await page.click('button:has-text("기록 추가")');
 await page.waitForTimeout(1000);
 await page.selectOption('#targetProvider', 'CODEX');
-await page.click('button:has-text("Create Handoff")');
+await page.click('button:has-text("핸드오프 만들기")');
 await page.waitForTimeout(1000);
 
 let thread = await (await fetch(`${API}/threads/${threadId}`)).json();
@@ -73,13 +73,13 @@ for (const summary of [
   'Tweaked spacing tokens across the design system.',
 ]) {
   await page.fill('#progressNote', summary);
-  await page.click('button:has-text("Add Snapshot")');
+  await page.click('button:has-text("기록 추가")');
   await page.waitForTimeout(800);
 }
 thread = await (await fetch(`${API}/threads/${threadId}`)).json();
 check(thread.driftStatus === 'DRIFTING', `unrelated work should drift, got ${thread.driftStatus}`);
 const detailText = await page.innerText('body');
-check(detailText.includes('Drifting'), 'detail page does not show the drift warning');
+check(detailText.includes('방향 이탈'), 'detail page does not show the drift warning');
 console.log(`after drifting: drift=${thread.driftStatus} score=${thread.driftScore}`);
 
 // 4. The Today dashboard should link to the thread.
@@ -91,7 +91,7 @@ check(
 
 // 5. Complete it.
 await page.goto(`${WEB}/threads/${threadId}`, { waitUntil: 'networkidle' });
-await page.click('button:has-text("Mark Completed")');
+await page.click('button:has-text("완료로 표시")');
 await page.waitForTimeout(1200);
 thread = await (await fetch(`${API}/threads/${threadId}`)).json();
 check(thread.status === 'COMPLETED', 'status not COMPLETED');
@@ -102,7 +102,7 @@ console.log(`completed: status=${thread.status} drift=${thread.driftStatus}`);
 for (const path of ['/settings/notifications', '/settings/providers']) {
   await page.goto(`${WEB}${path}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(500);
-  check(!(await page.innerText('body')).includes('Error:'), `${path} reported an error`);
+  check(!(await page.innerText('body')).includes('오류:'), `${path} reported an error`);
 }
 
 await browser.close();

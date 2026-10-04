@@ -44,8 +44,8 @@ describe('thread detail', () => {
     expect(await screen.findByRole('heading', { name: threadDetail.title })).toBeInTheDocument();
     // Scope to the Handoff section: the provider names also appear in the
     // create-handoff dropdown.
-    const handoffSection = screen.getByRole('heading', { name: /^Handoff$/ }).closest('section')!;
-    expect(handoffSection).toHaveTextContent('CLAUDE');
+    const handoffSection = screen.getByRole('heading', { name: /^핸드오프$/ }).closest('section')!;
+    expect(handoffSection).toHaveTextContent('Claude');
     expect(handoffSection).toHaveTextContent('Continue in Claude');
     expect(handoffSection).toHaveTextContent('Ship type fix');
   });
@@ -54,15 +54,15 @@ describe('thread detail', () => {
     // Regression: the page read event.ruleType; the API sends eventType.
     render(<ThreadDetail />);
 
-    expect(await screen.findByText(/INACTIVITY/)).toBeInTheDocument();
-    expect(screen.getByText(/QUEUED/)).toBeInTheDocument();
+    expect(await screen.findByText(/오래 멈춘 스레드/)).toBeInTheDocument();
+    expect(screen.getByText(/대기 중/)).toBeInTheDocument();
   });
 
   it('shows the drift score alongside the status', async () => {
     render(<ThreadDetail />);
 
-    expect(await screen.findByText(/On track/)).toBeInTheDocument();
-    expect(screen.getByText(/40% off intent/)).toBeInTheDocument();
+    expect(await screen.findByText(/정상 진행/)).toBeInTheDocument();
+    expect(screen.getByText(/처음 의도와 40% 다름/)).toBeInTheDocument();
   });
 
   it('pins the next action and refetches so the page shows server state', async () => {
@@ -70,7 +70,7 @@ describe('thread detail', () => {
     render(<ThreadDetail />);
     await screen.findByRole('heading', { name: threadDetail.title });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Pin Next Action' }));
+    await userEvent.click(screen.getByRole('button', { name: '다음 할 일 저장' }));
 
     await waitFor(() => expect(client.updateNextAction).toHaveBeenCalledWith(1, 'verify'));
     // Once on mount, once after the write.
@@ -82,7 +82,7 @@ describe('thread detail', () => {
     render(<ThreadDetail />);
     await screen.findByRole('heading', { name: threadDetail.title });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Mark Completed' }));
+    await userEvent.click(screen.getByRole('button', { name: '완료로 표시' }));
 
     await waitFor(() => expect(client.updateThreadStatus).toHaveBeenCalledWith(1, 'COMPLETED'));
   });
@@ -92,8 +92,8 @@ describe('thread detail', () => {
     render(<ThreadDetail />);
     await screen.findByRole('heading', { name: threadDetail.title });
 
-    await userEvent.selectOptions(screen.getByLabelText('Create handoff draft'), 'CODEX');
-    await userEvent.click(screen.getByRole('button', { name: 'Create Handoff' }));
+    await userEvent.selectOptions(screen.getByLabelText('핸드오프 초안 만들기'), 'CODEX');
+    await userEvent.click(screen.getByRole('button', { name: '핸드오프 만들기' }));
 
     await waitFor(() =>
       expect(client.generateHandoffDraft).toHaveBeenCalledWith(1, { targetProvider: 'CODEX' }),
@@ -109,7 +109,7 @@ describe('thread detail', () => {
     render(<ThreadDetail />);
     await screen.findByRole('heading', { name: threadDetail.title });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Pin Next Action' }));
+    await userEvent.click(screen.getByRole('button', { name: '다음 할 일 저장' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Next action is too long');
   });
@@ -119,7 +119,7 @@ describe('thread detail', () => {
     render(<ThreadDetail />);
     await screen.findByRole('heading', { name: threadDetail.title });
 
-    expect(screen.getByRole('button', { name: 'Mark Completed' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Reopen' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '완료로 표시' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '다시 열기' })).toBeEnabled();
   });
 });

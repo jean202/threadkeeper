@@ -179,6 +179,31 @@ public class Thread extends BaseEntity {
         }
     }
 
+    /**
+     * The intent an imported thread starts with when its session had no prompt
+     * to take one from. It is a stand-in, not something the user said.
+     */
+    public static String importPlaceholderIntent(String providerName, String sourceType) {
+        return "Imported from " + providerName + " " + sourceType + ".";
+    }
+
+    /**
+     * Lets a re-import fix what the import itself got wrong. A thread still
+     * carrying the title its session was imported with takes the session's new
+     * title, and a placeholder intent gives way to a real one. Anything the
+     * user set by hand differs from both and is left alone, so the "intent is
+     * never rewritten by imports" rule still holds for real intents.
+     */
+    public void adoptImportedNaming(String previousSessionTitle, String newTitle, String newOriginalIntent) {
+        if (newTitle != null && !newTitle.isBlank() && title.equals(previousSessionTitle)) {
+            this.title = newTitle;
+        }
+        if (newOriginalIntent != null && !newOriginalIntent.isBlank()
+                && originalIntent != null && originalIntent.startsWith("Imported from ")) {
+            this.originalIntent = newOriginalIntent;
+        }
+    }
+
     public void applyImportedSession(String originalIntent, String currentNextAction, Instant lastActivityAt) {
         if (originalIntent != null && !originalIntent.isBlank()) {
             this.originalIntent = originalIntent;

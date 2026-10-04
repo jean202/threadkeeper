@@ -7,7 +7,7 @@
 Why this name:
 
 - clear relationship to conversation threads and work threads
-- broad enough for Claude, Gemini, GPT, and Codex
+- broad enough for Claude, Gemini, Grok, and Codex
 - product-oriented rather than implementation-oriented
 
 ## 2. Product Naming

@@ -1,0 +1,2 @@
+{"type":"mode","mode":"default","sessionId":"4444dddd-0000-0000-0000-000000000004"}
+{"type":"user","isMeta":true,"isSidechain":false,"cwd":"/Users/dev/projects/empty","sessionId":"4444dddd-0000-0000-0000-000000000004","timestamp":"2026-09-23T00:00:00.000Z","message":{"role":"user","content":"<command-name>/model</command-name>"}}

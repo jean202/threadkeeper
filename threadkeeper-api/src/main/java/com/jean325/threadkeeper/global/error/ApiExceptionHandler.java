@@ -3,7 +3,12 @@ package com.jean325.threadkeeper.global.error;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,6 +17,26 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    /**
+     * Postgres runs in Docker, so the usual reason it is gone is Docker Desktop
+     * being quit. That is not a bug in the request: answer 503 with a code the
+     * web client can recognise and turn into "start Docker", instead of a bare
+     * 500 whose cause is only in the log. A failure to open the transaction is
+     * the first thing to trip; a connection lost mid-query surfaces as the
+     * resource failure.
+     */
+    @ExceptionHandler({CannotCreateTransactionException.class, DataAccessResourceFailureException.class})
+    public ResponseEntity<ApiErrorResponse> handleDatabaseUnavailable(RuntimeException ex) {
+        log.warn("Database unavailable: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiErrorResponse(
+                        "DATABASE_UNAVAILABLE",
+                        "The database is not reachable. Check that Docker Desktop and the threadkeeper-postgres container are running.",
+                        List.of()));
+    }
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiErrorResponse> handleApiException(ApiException ex) {

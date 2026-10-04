@@ -4,21 +4,21 @@ import { formatDate, formatStaleness, formatTimestamp } from '@/lib/format';
 describe('formatTimestamp', () => {
   it('renders a real timestamp', () => {
     expect(formatTimestamp('2026-08-04T04:19:27Z')).toBe(
-      new Date('2026-08-04T04:19:27Z').toLocaleString(),
+      new Date('2026-08-04T04:19:27Z').toLocaleString('ko-KR'),
     );
   });
 
   // The pages that inlined this had drifted: some guarded null, some did not.
-  it('reads null as never rather than "Invalid Date"', () => {
-    expect(formatTimestamp(null)).toBe('never');
-    expect(formatTimestamp(undefined)).toBe('never');
+  it('reads null as "none yet" rather than "Invalid Date"', () => {
+    expect(formatTimestamp(null)).toBe('없음');
+    expect(formatTimestamp(undefined)).toBe('없음');
   });
 });
 
 describe('formatDate', () => {
   it('drops the time of day', () => {
     expect(formatDate('2026-08-04T04:19:27Z')).toBe(
-      new Date('2026-08-04T04:19:27Z').toLocaleDateString(),
+      new Date('2026-08-04T04:19:27Z').toLocaleDateString('ko-KR'),
     );
   });
 
@@ -29,15 +29,15 @@ describe('formatDate', () => {
 
 describe('formatStaleness', () => {
   it('uses minutes below an hour', () => {
-    expect(formatStaleness(0)).toBe('0m idle');
-    expect(formatStaleness(59)).toBe('59m idle');
+    expect(formatStaleness(0)).toBe('0분째 멈춤');
+    expect(formatStaleness(59)).toBe('59분째 멈춤');
   });
 
   it('switches to hours, then to days', () => {
-    expect(formatStaleness(60)).toBe('1h idle');
-    expect(formatStaleness(480)).toBe('8h idle');
-    expect(formatStaleness(60 * 24)).toBe('1d idle');
-    expect(formatStaleness(60 * 24 * 3)).toBe('3d idle');
+    expect(formatStaleness(60)).toBe('1시간째 멈춤');
+    expect(formatStaleness(480)).toBe('8시간째 멈춤');
+    expect(formatStaleness(60 * 24)).toBe('1일째 멈춤');
+    expect(formatStaleness(60 * 24 * 3)).toBe('3일째 멈춤');
   });
 
   /**
@@ -45,8 +45,8 @@ describe('formatStaleness', () => {
    * activity. Rendering that as a duration would read as millions of days.
    */
   it('reports never-touched threads instead of an absurd duration', () => {
-    expect(formatStaleness(Number.MAX_SAFE_INTEGER)).toBe('no activity yet');
-    expect(formatStaleness(Infinity)).toBe('no activity yet');
-    expect(formatStaleness(NaN)).toBe('no activity yet');
+    expect(formatStaleness(Number.MAX_SAFE_INTEGER)).toBe('아직 활동 없음');
+    expect(formatStaleness(Infinity)).toBe('아직 활동 없음');
+    expect(formatStaleness(NaN)).toBe('아직 활동 없음');
   });
 });

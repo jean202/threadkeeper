@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 const LINKS = [
-  { href: '/', label: 'Threads' },
-  { href: '/today', label: 'Today' },
-  { href: '/threads/new', label: 'New Thread' },
-  { href: '/settings/notifications', label: 'Notifications' },
-  { href: '/settings/providers', label: 'Providers' },
+  { href: '/', label: '스레드' },
+  { href: '/today', label: '오늘' },
+  { href: '/threads/new', label: '새 스레드' },
+  { href: '/settings/notifications', label: '알림' },
+  { href: '/settings/providers', label: 'AI 도구 연동' },
 ];
 
 /**
@@ -20,7 +20,7 @@ export default function NavBar() {
 
   return (
     <nav
-      aria-label="Main"
+      aria-label="주 메뉴"
       style={{
         display: 'flex',
         gap: '14px',

@@ -1,15 +1,16 @@
 import { FormEvent, useState } from 'react';
 import { ProviderType, ThreadPriority, ThreadSearchParams, ThreadStatus } from '@/types/thread';
+import { PRIORITY_LABEL, PROVIDER_LABEL, STATUS_LABEL } from '@/lib/labels';
 
-const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 const STATUSES: ThreadStatus[] = ['ACTIVE', 'PAUSED', 'BLOCKED', 'COMPLETED'];
 const PRIORITIES: ThreadPriority[] = ['HIGH', 'MEDIUM', 'LOW'];
 
 /** Recency choices, in days. Anything longer is better served by leaving it off. */
 const RECENCY: { label: string; days: number }[] = [
-  { label: 'Last 24 hours', days: 1 },
-  { label: 'Last 7 days', days: 7 },
-  { label: 'Last 30 days', days: 30 },
+  { label: '최근 24시간', days: 1 },
+  { label: '최근 7일', days: 7 },
+  { label: '최근 30일', days: 30 },
 ];
 
 /** What the form holds while it is being filled in: every control is a string. */
@@ -56,6 +57,17 @@ export default function ThreadSearchForm({
 
   const update = (patch: Partial<FormState>) => setForm((current) => ({ ...current, ...patch }));
 
+  /**
+   * The dropdowns apply as soon as they change: picking a value is already a
+   * complete choice, unlike a half-typed keyword. The search carries the whole
+   * form, so text already typed into the other fields applies along with it.
+   */
+  const updateAndSearch = (patch: Partial<FormState>) => {
+    const next = { ...form, ...patch };
+    setForm(next);
+    onSearch(toParams(next));
+  };
+
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     onSearch(toParams(form));
@@ -69,15 +81,15 @@ export default function ThreadSearchForm({
   return (
     <form onSubmit={onSubmit} style={{ marginBottom: '20px' }}>
       <div style={{ marginBottom: '8px' }}>
-        <label htmlFor="q">Keyword</label>{' '}
+        <label htmlFor="q">키워드</label>{' '}
         <input
           id="q"
           value={form.q}
           onChange={(e) => update({ q: e.target.value })}
-          placeholder="title, intent, next action..."
+          placeholder="제목, 의도, 다음 할 일..."
           style={{ ...controlStyle, width: '260px' }}
         />
-        <label htmlFor="projectKey">Project</label>{' '}
+        <label htmlFor="projectKey">프로젝트</label>{' '}
         <input
           id="projectKey"
           value={form.projectKey}
@@ -87,56 +99,56 @@ export default function ThreadSearchForm({
         />
       </div>
       <div>
-        <label htmlFor="provider">Provider</label>{' '}
+        <label htmlFor="provider">AI 도구</label>{' '}
         <select
           id="provider"
           value={form.provider}
-          onChange={(e) => update({ provider: e.target.value })}
+          onChange={(e) => updateAndSearch({ provider: e.target.value })}
           style={controlStyle}
         >
-          <option value="">Any</option>
+          <option value="">전체</option>
           {PROVIDERS.map((provider) => (
             <option key={provider} value={provider}>
-              {provider}
+              {PROVIDER_LABEL[provider]}
             </option>
           ))}
         </select>
-        <label htmlFor="status">Status</label>{' '}
+        <label htmlFor="status">상태</label>{' '}
         <select
           id="status"
           value={form.status}
-          onChange={(e) => update({ status: e.target.value })}
+          onChange={(e) => updateAndSearch({ status: e.target.value })}
           style={controlStyle}
         >
-          <option value="">Any</option>
+          <option value="">전체</option>
           {STATUSES.map((status) => (
             <option key={status} value={status}>
-              {status}
+              {STATUS_LABEL[status]}
             </option>
           ))}
         </select>
-        <label htmlFor="priority">Priority</label>{' '}
+        <label htmlFor="priority">우선순위</label>{' '}
         <select
           id="priority"
           value={form.priority}
-          onChange={(e) => update({ priority: e.target.value })}
+          onChange={(e) => updateAndSearch({ priority: e.target.value })}
           style={controlStyle}
         >
-          <option value="">Any</option>
+          <option value="">전체</option>
           {PRIORITIES.map((priority) => (
             <option key={priority} value={priority}>
-              {priority}
+              {PRIORITY_LABEL[priority]}
             </option>
           ))}
         </select>
-        <label htmlFor="activeWithinDays">Active within</label>{' '}
+        <label htmlFor="activeWithinDays">최근 활동</label>{' '}
         <select
           id="activeWithinDays"
           value={form.activeWithinDays}
-          onChange={(e) => update({ activeWithinDays: e.target.value })}
+          onChange={(e) => updateAndSearch({ activeWithinDays: e.target.value })}
           style={controlStyle}
         >
-          <option value="">Any time</option>
+          <option value="">전체 기간</option>
           {RECENCY.map((option) => (
             <option key={option.days} value={String(option.days)}>
               {option.label}
@@ -144,10 +156,11 @@ export default function ThreadSearchForm({
           ))}
         </select>
         <button type="submit" disabled={busy} style={controlStyle}>
-          {busy ? 'Searching...' : 'Search'}
+          {busy ? '검색 중...' : '검색'}
         </button>
-        <button type="button" onClick={onReset} disabled={busy}>
-          Clear
+        {/* Never disabled: it is the way out of a search that is not coming back. */}
+        <button type="button" onClick={onReset}>
+          초기화
         </button>
       </div>
     </form>

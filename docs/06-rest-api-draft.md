@@ -26,7 +26,7 @@ so an empty form field cannot narrow the result set.
 | Parameter | Type | Matches |
 | --- | --- | --- |
 | `projectKey` | string | Exact project key, ignoring case |
-| `provider` | `CLAUDE` \| `CODEX` \| `GEMINI` \| `GPT` | Threads with at least one imported session from that provider |
+| `provider` | `CLAUDE` \| `CODEX` \| `GEMINI` \| `GROK` | Threads with at least one imported session from that provider |
 | `status` | `ACTIVE` \| `PAUSED` \| `BLOCKED` \| `COMPLETED` | Thread status |
 | `priority` | `LOW` \| `MEDIUM` \| `HIGH` | Thread priority |
 | `q` | string | Substring, ignoring case, of the title, original intent, next action, today's goal, or done condition |

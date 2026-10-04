@@ -12,23 +12,100 @@ function safeParseLine(line) {
   try { return JSON.parse(line); } catch { return null; }
 }
 
-function deriveProjectKey(cwd) {
+/**
+ * Claude Code runs worktree sessions in `<repo>/.claude/worktrees/<name>`, so
+ * the basename would name the worktree, not the project. Strip that suffix so
+ * a worktree session lands in the same project as the main checkout.
+ */
+const WORKTREE_SUFFIX_RE = /\/\.claude\/worktrees\/[^/]+\/?$/;
+
+export function deriveProjectKey(cwd) {
   if (typeof cwd !== "string" || cwd.trim() === "") return "unknown";
-  const base = path.basename(cwd).toLowerCase().replace(/[^a-z0-9._-]/g, "-");
+  const projectDir = cwd.replace(WORKTREE_SUFFIX_RE, "");
+  const base = path.basename(projectDir).toLowerCase().replace(/[^a-z0-9._-]/g, "-");
   if (!base) return "unknown";
   return sanitizeString(base, PROJECT_KEY_MAX);
 }
 
+/**
+ * Sections Codex puts in a user turn on the user's behalf: the environment
+ * block, AGENTS.md and other instructions. They come before the typed prompt,
+ * sometimes as their own content block and sometimes at the head of the same
+ * block, so they are stripped from the front rather than the whole text being
+ * judged by how it starts.
+ */
+/**
+ * Only the tags Codex itself writes. A user can wrap their own prompt in a
+ * tag (a templated "<task>...</task>"), and stripping any tag at all threw
+ * those prompts away.
+ */
+const CODEX_WRAPPER_TAGS = [
+  "environment_context",
+  "user_instructions",
+  "permissions instructions",
+  "INSTRUCTIONS",
+  "turn_aborted",
+  "user_shell_command",
+];
+
+const LEADING_WRAPPER_RES = [
+  /^\s*# AGENTS\.md instructions[^\n]*\n+\s*<INSTRUCTIONS>[\s\S]*?<\/INSTRUCTIONS>/,
+  ...CODEX_WRAPPER_TAGS.map((tag) => new RegExp(`^\\s*<${tag}>[\\s\\S]*?</${tag}>`)),
+];
+
+function stripLeadingWrappers(text) {
+  let rest = text;
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const re of LEADING_WRAPPER_RES) {
+      const next = rest.replace(re, "");
+      if (next !== rest) {
+        rest = next;
+        changed = true;
+      }
+    }
+  }
+  return rest.trim();
+}
+
+/** The text blocks of a response_item message from `role`, in order. */
+function responseItemBlocks(payload, role) {
+  if (payload?.type !== "message" || payload.role !== role || !Array.isArray(payload.content)) return [];
+  return payload.content
+    .filter((block) => typeof block?.text === "string" && /^(input|output)_text$/.test(block.type))
+    .map((block) => block.text);
+}
+
+/** The first thing in a user message the user actually typed, if any. */
+function typedUserText(payload) {
+  for (const block of responseItemBlocks(payload, "user")) {
+    const text = stripLeadingWrappers(block);
+    if (text) return text;
+  }
+  return "";
+}
+
+function responseItemText(payload, role) {
+  return responseItemBlocks(payload, role).join("\n").trim();
+}
+
 function findFirstUserMessage(lines) {
+  // The event_msg is exactly what the user typed, so prefer it when present.
   for (let i = 1; i < lines.length; i += 1) {
     const obj = safeParseLine(lines[i]);
     if (!obj) continue;
     if (obj.type === "event_msg" && obj.payload?.type === "user_message") {
       const msg = obj.payload.message;
-      if (typeof msg === "string" && msg.length > 0) {
+      if (typeof msg === "string" && msg.trim().length > 0) {
         return sanitizeString(msg, INTENT_MAX);
       }
     }
+  }
+  for (let i = 1; i < lines.length; i += 1) {
+    const obj = safeParseLine(lines[i]);
+    if (!obj || obj.type !== "response_item") continue;
+    const text = typedUserText(obj.payload);
+    if (text) return sanitizeString(text, INTENT_MAX);
   }
   return null;
 }
@@ -36,16 +113,23 @@ function findFirstUserMessage(lines) {
 function findNextAction(lines) {
   let lastAgent = null;
   let lastUser = null;
+  let lastAssistantItem = null;
   for (let i = 1; i < lines.length; i += 1) {
     const obj = safeParseLine(lines[i]);
-    if (!obj || obj.type !== "event_msg") continue;
+    if (!obj) continue;
+    if (obj.type === "response_item") {
+      const text = responseItemText(obj.payload, "assistant");
+      if (text) lastAssistantItem = text;
+      continue;
+    }
+    if (obj.type !== "event_msg") continue;
     const pt = obj.payload?.type;
     const msg = obj.payload?.message;
     if (typeof msg !== "string" || msg.length === 0) continue;
     if (pt === "agent_message") lastAgent = msg;
     else if (pt === "user_message") lastUser = msg;
   }
-  const chosen = lastAgent ?? lastUser;
+  const chosen = lastAgent ?? lastAssistantItem ?? lastUser;
   return chosen == null ? null : sanitizeString(chosen, NEXT_ACTION_MAX);
 }
 
@@ -90,6 +174,20 @@ export function findRolloutFiles(rootDir) {
   return out;
 }
 
+/**
+ * A session another Codex agent started to hand off part of its work. Its
+ * instructions arrive as agent_message items ("Message Type: NEW_TASK"), and
+ * no person typed anything into it -- the user turns are only Codex's own
+ * AGENTS.md and environment blocks. The work already belongs to the session
+ * that delegated it, so like Claude's subagent transcripts it is not a thread.
+ */
+function isDelegatedSubSession(lines) {
+  return lines.some((line) => {
+    const obj = safeParseLine(line);
+    return obj?.type === "response_item" && obj.payload?.type === "agent_message";
+  });
+}
+
 export function extractSessionFromFile(filePath) {
   const raw = readFileSync(filePath, "utf8");
   const lines = raw.split(/\r?\n/).filter((line) => line.length > 0);
@@ -102,6 +200,9 @@ export function extractSessionFromFile(filePath) {
   const startedAt = payload.timestamp ?? null;
   const projectKey = deriveProjectKey(payload.cwd);
   const originalIntent = findFirstUserMessage(lines);
+  // Only when nobody typed into it: a session the user drives can still
+  // exchange messages with agents it spawned.
+  if (originalIntent === null && isDelegatedSubSession(lines)) return null;
   return {
     provider: "CODEX",
     providerSessionKey: payload.id,
@@ -117,6 +218,28 @@ export function extractSessionFromFile(filePath) {
   };
 }
 
+/**
+ * Session ids of the delegated sub-sessions under `rootDir` -- the ones
+ * extractSessionFromFile leaves out. For cleaning up threads imported before
+ * they were skipped.
+ */
+export function listDelegatedSubSessionIds(rootDir) {
+  const ids = [];
+  for (const file of findRolloutFiles(rootDir)) {
+    try {
+      const lines = readFileSync(file, "utf8").split(/\r?\n/).filter((line) => line.length > 0);
+      const meta = safeParseLine(lines[0] ?? "");
+      if (meta?.type !== "session_meta" || !meta.payload?.id) continue;
+      if (findFirstUserMessage(lines) === null && isDelegatedSubSession(lines)) {
+        ids.push(meta.payload.id);
+      }
+    } catch {
+      // An unreadable file is not evidence of anything; leave it out.
+    }
+  }
+  return ids;
+}
+
 export function enumerateCodexSessions(rootDir) {
   const files = findRolloutFiles(rootDir);
   const sessions = [];
@@ -129,7 +252,7 @@ export function enumerateCodexSessions(rootDir) {
         sessions.push(session);
       } else {
         skippedFiles += 1;
-        warnings.push({ file, reason: "no session_meta" });
+        warnings.push({ file, reason: "no session_meta, or a session another agent delegated" });
       }
     } catch (err) {
       skippedFiles += 1;

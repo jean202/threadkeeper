@@ -4,7 +4,7 @@
 
 ThreadKeeper is a system for preserving working intent across AI coding sessions. It captures a session's first goal, tracks progress over time, summarizes drift, generates handoffs between tools, and sends reminders or completion notifications.
 
-It is designed for users who work across multiple AI tools such as Claude, Gemini, GPT, and Codex, or who split work into many sessions inside the same tool.
+It is designed for users who work across multiple AI tools such as Claude, Gemini, Grok, and Codex, or who split work into many sessions inside the same tool.
 
 ## 2. Problem Statement
 

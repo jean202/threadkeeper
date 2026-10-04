@@ -47,7 +47,7 @@ export default function PortfolioReadinessBadge({ readiness }: { readiness?: Por
     >
       포트폴리오 {label}
       {gitPart ? ` · ${gitPart}` : ''}
-      {readiness.stale ? ' (stale)' : ''}
+      {readiness.stale ? ' (오래됨)' : ''}
     </span>
   );
 }

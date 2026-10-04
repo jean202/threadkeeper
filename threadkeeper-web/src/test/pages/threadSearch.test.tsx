@@ -41,8 +41,8 @@ describe('thread search', () => {
     render(<Home />);
     await screen.findByText(threadListItem.title);
 
-    await user.type(screen.getByLabelText('Keyword'), 'drift');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await user.type(screen.getByLabelText('키워드'), 'drift');
+    await user.click(screen.getByRole('button', { name: '검색' }));
 
     await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(2));
     expect(lastQuery()).toEqual({
@@ -60,23 +60,22 @@ describe('thread search', () => {
     render(<Home />);
     await screen.findByText(threadListItem.title);
 
-    await user.type(screen.getByLabelText('Keyword'), 'handoff');
-    await user.type(screen.getByLabelText('Project'), 'threadkeeper');
-    await user.selectOptions(screen.getByLabelText('Provider'), 'CODEX');
-    await user.selectOptions(screen.getByLabelText('Status'), 'BLOCKED');
-    await user.selectOptions(screen.getByLabelText('Priority'), 'HIGH');
-    await user.selectOptions(screen.getByLabelText('Active within'), '7');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await user.type(screen.getByLabelText('키워드'), 'handoff');
+    await user.type(screen.getByLabelText('프로젝트'), 'threadkeeper');
+    await user.selectOptions(screen.getByLabelText('AI 도구'), 'CODEX');
+    await user.selectOptions(screen.getByLabelText('상태'), 'BLOCKED');
+    await user.selectOptions(screen.getByLabelText('우선순위'), 'HIGH');
+    await user.selectOptions(screen.getByLabelText('최근 활동'), '7');
+    await user.click(screen.getByRole('button', { name: '검색' }));
 
-    await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(2));
-    expect(lastQuery()).toEqual({
+    await waitFor(() => expect(lastQuery()).toEqual({
       q: 'handoff',
       projectKey: 'threadkeeper',
       provider: 'CODEX',
       status: 'BLOCKED',
       priority: 'HIGH',
       activeWithinDays: 7,
-    });
+    }));
   });
 
   it('treats whitespace as an empty field rather than a filter', async () => {
@@ -84,8 +83,8 @@ describe('thread search', () => {
     render(<Home />);
     await screen.findByText(threadListItem.title);
 
-    await user.type(screen.getByLabelText('Keyword'), '   ');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await user.type(screen.getByLabelText('키워드'), '   ');
+    await user.click(screen.getByRole('button', { name: '검색' }));
 
     await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(2));
     expect(lastQuery()?.q).toBeUndefined();
@@ -97,17 +96,17 @@ describe('thread search', () => {
     await screen.findByText(threadListItem.title);
 
     client.listThreads.mockResolvedValue([]);
-    await user.type(screen.getByLabelText('Keyword'), 'nothing matches this');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await user.type(screen.getByLabelText('키워드'), 'nothing matches this');
+    await user.click(screen.getByRole('button', { name: '검색' }));
 
-    expect(await screen.findByText('No threads match these filters.')).toBeInTheDocument();
+    expect(await screen.findByText('조건에 맞는 스레드가 없어요.')).toBeInTheDocument();
   });
 
   it('reports an empty database without blaming the filters', async () => {
     client.listThreads.mockResolvedValue([]);
     render(<Home />);
 
-    expect(await screen.findByText('No threads found')).toBeInTheDocument();
+    expect(await screen.findByText('아직 스레드가 없어요.')).toBeInTheDocument();
   });
 
   it('clears back to the unfiltered list', async () => {
@@ -115,12 +114,12 @@ describe('thread search', () => {
     render(<Home />);
     await screen.findByText(threadListItem.title);
 
-    const keyword = screen.getByLabelText('Keyword');
+    const keyword = screen.getByLabelText('키워드');
     await user.type(keyword, 'drift');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await user.click(screen.getByRole('button', { name: '검색' }));
     await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(2));
 
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.click(screen.getByRole('button', { name: '초기화' }));
 
     await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(3));
     expect(lastQuery()).toEqual({});
@@ -135,14 +134,75 @@ describe('thread search', () => {
     let release: (value: unknown) => void = () => {};
     client.listThreads.mockReturnValue(new Promise((resolve) => { release = resolve; }));
 
-    await user.type(screen.getByLabelText('Keyword'), 'drift');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await user.type(screen.getByLabelText('키워드'), 'drift');
+    await user.click(screen.getByRole('button', { name: '검색' }));
 
     // Still the old list, and the button says so.
     expect(screen.getByText(threadListItem.title)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Searching...' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '검색 중...' })).toBeInTheDocument();
 
     release([]);
-    expect(await screen.findByText('No threads match these filters.')).toBeInTheDocument();
+    expect(await screen.findByText('조건에 맞는 스레드가 없어요.')).toBeInTheDocument();
+  });
+
+  it('reports a failed search instead of staying on Searching...', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    // A 4xx is final, so no retry is scheduled and nothing would ever settle.
+    client.listThreads.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 400'), {
+        isAxiosError: true,
+        response: { status: 400 },
+      }),
+    );
+    await user.selectOptions(screen.getByLabelText('AI 도구'), 'CODEX');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('status code 400');
+    expect(screen.getByRole('button', { name: '검색' })).toBeEnabled();
+  });
+
+  it('lets Clear abandon a search that is still in flight', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    client.listThreads.mockReturnValueOnce(new Promise(() => {}));
+    await user.type(screen.getByLabelText('키워드'), 'drift');
+    await user.click(screen.getByRole('button', { name: '검색' }));
+    expect(screen.getByRole('button', { name: '검색 중...' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '초기화' }));
+
+    await waitFor(() => expect(lastQuery()).toEqual({}));
+    expect(await screen.findByRole('button', { name: '검색' })).toBeEnabled();
+  });
+
+  it('applies a dropdown as soon as it changes, without pressing Search', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    await user.selectOptions(screen.getByLabelText('AI 도구'), 'CODEX');
+
+    await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(2));
+    expect(lastQuery()).toMatchObject({ provider: 'CODEX', q: undefined });
+
+    // Back to Any drops the filter again.
+    await user.selectOptions(screen.getByLabelText('AI 도구'), '');
+    await waitFor(() => expect(client.listThreads).toHaveBeenCalledTimes(3));
+    expect(lastQuery()?.provider).toBeUndefined();
+  });
+
+  it('does not search on every keystroke in the text fields', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await screen.findByText(threadListItem.title);
+
+    await user.type(screen.getByLabelText('키워드'), 'drift');
+    await user.type(screen.getByLabelText('프로젝트'), 'billing');
+
+    expect(client.listThreads).toHaveBeenCalledTimes(1);
   });
 });

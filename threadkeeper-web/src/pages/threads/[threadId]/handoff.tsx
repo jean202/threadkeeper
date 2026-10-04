@@ -5,8 +5,9 @@ import { describeApiError, threadKeeperClient } from '@/api/client';
 import { HandoffResponse, ProviderType, ThreadDetailResponse } from '@/types/thread';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
+import { HANDOFF_STATUS_LABEL, PROVIDER_LABEL, STATUS_LABEL, label } from '@/lib/labels';
 
-const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GPT'];
+const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 
 const fieldStyle = { width: '100%', padding: '8px', marginBottom: '12px' } as const;
 
@@ -76,7 +77,7 @@ export default function HandoffComposer() {
       resource.reload();
       setNotice(done);
     } catch (err) {
-      setError(describeApiError(err, `Failed to ${name}`));
+      setError(describeApiError(err, `${name}에 실패했어요`));
     } finally {
       setBusy(null);
     }
@@ -88,12 +89,13 @@ export default function HandoffComposer() {
       return base ? { ...base, ...patch } : base;
     });
 
-  if (resource.loading) return <div>Loading...</div>;
+  if (resource.loading) return <div>불러오는 중...</div>;
   if (!thread) {
     return (
       <div style={{ padding: '20px' }}>
         <LoadError
-          error={resource.error ?? error ?? 'Thread not found'}
+          error={resource.error ?? error ?? '스레드를 찾을 수 없어요'}
+          code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
           onRetry={resource.reload}
@@ -108,62 +110,62 @@ export default function HandoffComposer() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '720px' }}>
-      <Link href={`/threads/${thread.id}`}>← Back to Thread</Link>
-      <h1>Handoff: {thread.title}</h1>
+      <Link href={`/threads/${thread.id}`}>← 스레드로 돌아가기</Link>
+      <h1>핸드오프: {thread.title}</h1>
 
-      {error && <p role="alert">Error: {error}</p>}
+      {error && <p role="alert">오류: {error}</p>}
       {notice && <p role="status">{notice}</p>}
 
       <section style={{ marginBottom: '24px' }}>
-        <h3>Context</h3>
-        <p><strong>Original Intent:</strong> {thread.originalIntent}</p>
-        <p><strong>Today&apos;s Goal:</strong> {thread.todayGoal ?? '—'}</p>
-        <p><strong>Done Condition:</strong> {thread.doneCondition ?? '—'}</p>
-        <p><strong>Current Status:</strong> {thread.status}</p>
+        <h3>맥락</h3>
+        <p><strong>처음 의도:</strong> {thread.originalIntent}</p>
+        <p><strong>오늘의 목표:</strong> {thread.todayGoal ?? '—'}</p>
+        <p><strong>완료 조건:</strong> {thread.doneCondition ?? '—'}</p>
+        <p><strong>현재 상태:</strong> {label(STATUS_LABEL, thread.status)}</p>
       </section>
 
       {!handoff || !fields ? (
         <section>
-          <h3>No handoff yet</h3>
-          <p>Generate a draft from the thread&apos;s intent, latest snapshot, and most recent session.</p>
+          <h3>아직 핸드오프가 없어요</h3>
+          <p>스레드의 처음 의도, 최근 진행 기록, 가장 최근 세션을 바탕으로 초안을 만들어요.</p>
           <select
-            aria-label="Target provider"
+            aria-label="넘겨받을 AI 도구"
             value={newDraftProvider}
             onChange={(e) => setNewDraftProvider(e.target.value as ProviderType)}
           >
             {PROVIDERS.map((provider) => (
               <option key={provider} value={provider}>
-                {provider}
+                {PROVIDER_LABEL[provider]}
               </option>
             ))}
           </select>{' '}
           <button
             onClick={() =>
               runAction(
-                'generate the draft',
+                '초안 생성',
                 () =>
                   threadKeeperClient.generateHandoffDraft(thread.id, {
                     targetProvider: newDraftProvider,
                   }),
-                'Draft generated.',
+                '초안을 만들었어요.',
               )
             }
             disabled={busy !== null}
           >
-            {busy === 'generate the draft' ? 'Generating...' : 'Generate Draft'}
+            {busy === '초안 생성' ? '만드는 중...' : '초안 만들기'}
           </button>
         </section>
       ) : (
         <section>
-          <h3>Draft ({handoff.status})</h3>
+          <h3>초안 ({label(HANDOFF_STATUS_LABEL, handoff.status)})</h3>
           <p>
-            <strong>Source session:</strong>{' '}
+            <strong>원본 세션:</strong>{' '}
             {sourceSession
-              ? `${sourceSession.provider} / ${sourceSession.title ?? sourceSession.providerSessionKey}`
-              : 'none linked'}
+              ? `${label(PROVIDER_LABEL, sourceSession.provider)} / ${sourceSession.title ?? sourceSession.providerSessionKey}`
+              : '연결된 세션 없음'}
           </p>
 
-          <label htmlFor="targetProvider">Target provider</label>
+          <label htmlFor="targetProvider">넘겨받을 AI 도구</label>
           <select
             id="targetProvider"
             value={fields.targetProvider}
@@ -172,12 +174,12 @@ export default function HandoffComposer() {
           >
             {PROVIDERS.map((provider) => (
               <option key={provider} value={provider}>
-                {provider}
+                {PROVIDER_LABEL[provider]}
               </option>
             ))}
           </select>
 
-          <label htmlFor="reason">Reason</label>
+          <label htmlFor="reason">이유</label>
           <input
             id="reason"
             value={fields.reason}
@@ -186,7 +188,7 @@ export default function HandoffComposer() {
             style={fieldStyle}
           />
 
-          <label htmlFor="whatChanged">What was done</label>
+          <label htmlFor="whatChanged">한 일</label>
           <textarea
             id="whatChanged"
             value={fields.whatChanged}
@@ -195,7 +197,7 @@ export default function HandoffComposer() {
             style={fieldStyle}
           />
 
-          <label htmlFor="blockers">What is blocked</label>
+          <label htmlFor="blockers">막힌 점</label>
           <textarea
             id="blockers"
             value={fields.blockers}
@@ -204,7 +206,7 @@ export default function HandoffComposer() {
             style={fieldStyle}
           />
 
-          <label htmlFor="nextAction">Next action</label>
+          <label htmlFor="nextAction">다음 할 일</label>
           <textarea
             id="nextAction"
             value={fields.nextAction}
@@ -213,7 +215,7 @@ export default function HandoffComposer() {
             style={fieldStyle}
           />
 
-          <label htmlFor="filesNote">Files to look at</label>
+          <label htmlFor="filesNote">살펴볼 파일</label>
           <textarea
             id="filesNote"
             value={fields.filesNote}
@@ -225,32 +227,32 @@ export default function HandoffComposer() {
           <button
             onClick={() =>
               runAction(
-                'save the draft',
+                '초안 저장',
                 () => threadKeeperClient.updateHandoff(handoff.id, toPayload(fields)),
-                'Draft saved.',
+                '초안을 저장했어요.',
               )
             }
             disabled={busy !== null}
             style={{ marginRight: '10px', padding: '10px 20px' }}
           >
-            {busy === 'save the draft' ? 'Saving...' : 'Save Draft'}
+            {busy === '초안 저장' ? '저장 중...' : '초안 저장'}
           </button>
           <button
             onClick={() =>
               runAction(
-                'finalize the handoff',
+                '핸드오프 확정',
                 () =>
                   threadKeeperClient.updateHandoff(handoff.id, {
                     ...toPayload(fields),
                     status: 'READY',
                   }),
-                'Handoff marked ready.',
+                '핸드오프를 준비 완료로 표시했어요.',
               )
             }
             disabled={busy !== null || handoff.status === 'READY'}
             style={{ padding: '10px 20px' }}
           >
-            {busy === 'finalize the handoff' ? 'Finalizing...' : 'Finalize Handoff'}
+            {busy === '핸드오프 확정' ? '확정 중...' : '핸드오프 확정'}
           </button>
         </section>
       )}
