@@ -183,6 +183,13 @@ test("keeps a prompt the user wrapped in a tag of their own", () => {
   assert.equal(result.title, "<task> 스코어 서비스 어드민 작업 범위 확인 </task>");
 });
 
+test("takes the prompt from under Codex's '## My request:' heading", () => {
+  // With the in-app browser or a file attached, Codex puts that context first
+  // and heads what the user typed with "## My request:".
+  const result = extractSessionFromFile(fixture("my-request-heading.jsonl"));
+  assert.equal(result.originalIntent, "어드민 시안 색 대비 맞춰줘");
+});
+
 test("leaves out a session another agent delegated, which nobody typed into", () => {
   // Its only user turns are Codex's own blocks; the task came as agent_message.
   assert.equal(extractSessionFromFile(fixture("delegated-subsession.jsonl")), null);

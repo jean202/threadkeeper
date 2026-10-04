@@ -42,3 +42,29 @@ threshold.
 
 Threads imported before this existed can be removed with
 `scripts/collapse-repeated-imports.sh` (preview by default, `--apply` to delete).
+
+## Resuming a Codex session in Claude
+
+When a Codex turn stops partway (usually the usage limit), `resume` prints a
+markdown packet of where it stopped, for Claude to pick up:
+
+```bash
+node src/cli.js resume --cwd /path/to/project      # latest session that ran there
+node src/cli.js resume --session 01a0e2b5           # or by part of its id
+```
+
+It picks the latest rollout (by mtime) that ran in `--cwd` (default: the current
+folder), treating a `.claude/worktrees/<name>` folder as its project and skipping
+sessions another agent spawned. The packet has the stop reason and, for the usage
+limit, when it resets; the first prompt; the last two finished turns; and, for
+the last turn, the request (without the context Codex wraps around it), Codex's
+progress notes, the files it patched, its last commands with exit codes, and its
+reasoning headings. `--json` prints the packet object instead. With no session
+to pick it exits 2 and lists the recent ones on stderr.
+
+`--codex-home` is the sessions root, as for import; thread names come from
+`session_index.jsonl` beside it.
+
+The `/codex-resume` Claude skill in [`skills/codex-resume`](../skills/codex-resume)
+runs this and has Claude check the packet against `git status` before carrying
+on. `scripts/install-codex-resume-skill.sh` links it into `~/.claude/skills`.

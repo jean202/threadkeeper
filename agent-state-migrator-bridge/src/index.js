@@ -26,7 +26,7 @@ function targetsList(target) {
   return String(target ?? "").split(",").map((t) => t.trim()).filter(Boolean);
 }
 
-function defaultCodexSessionsRoot() {
+export function defaultCodexSessionsRoot() {
   return path.join(os.homedir(), ".codex", "sessions");
 }
 

@@ -14,6 +14,19 @@ It helps users keep track of:
 
 ThreadKeeper is designed as a product layer above local state collectors such as `agent-state-migrator`.
 
+## Continue a Codex session in Claude
+
+When Codex stops partway through a turn (usually the usage limit), `/codex-resume`
+in Claude Code picks up where it stopped: it reads the session's rollout, shows
+what Codex was doing, checks that against `git status`, and carries on.
+
+```bash
+scripts/install-codex-resume-skill.sh
+```
+
+links the skill into `~/.claude/skills`. See
+[agent-state-migrator-bridge](agent-state-migrator-bridge/README.md#resuming-a-codex-session-in-claude).
+
 ## Documents
 
 - [01 PRD](docs/01-prd.md)

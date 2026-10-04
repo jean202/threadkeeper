@@ -19,10 +19,14 @@ function safeParseLine(line) {
  */
 const WORKTREE_SUFFIX_RE = /\/\.claude\/worktrees\/[^/]+\/?$/;
 
+/** The project folder a session ran in, with a worktree suffix stripped. */
+export function projectDir(cwd) {
+  return cwd.replace(WORKTREE_SUFFIX_RE, "");
+}
+
 export function deriveProjectKey(cwd) {
   if (typeof cwd !== "string" || cwd.trim() === "") return "unknown";
-  const projectDir = cwd.replace(WORKTREE_SUFFIX_RE, "");
-  const base = path.basename(projectDir).toLowerCase().replace(/[^a-z0-9._-]/g, "-");
+  const base = path.basename(projectDir(cwd)).toLowerCase().replace(/[^a-z0-9._-]/g, "-");
   if (!base) return "unknown";
   return sanitizeString(base, PROJECT_KEY_MAX);
 }
@@ -68,6 +72,19 @@ function stripLeadingWrappers(text) {
   return rest.trim();
 }
 
+/**
+ * With the in-app browser or a file attached, Codex puts that context first
+ * and heads what the user typed with "## My request:".
+ */
+const MY_REQUEST_HEADING_RE = /^## My request:[ \t]*$/m;
+
+/** What the user typed in one block of a user turn, without Codex's additions. */
+export function typedPromptText(text) {
+  const rest = stripLeadingWrappers(text);
+  const parts = rest.split(MY_REQUEST_HEADING_RE);
+  return parts[parts.length - 1].trim();
+}
+
 /** The text blocks of a response_item message from `role`, in order. */
 function responseItemBlocks(payload, role) {
   if (payload?.type !== "message" || payload.role !== role || !Array.isArray(payload.content)) return [];
@@ -77,15 +94,15 @@ function responseItemBlocks(payload, role) {
 }
 
 /** The first thing in a user message the user actually typed, if any. */
-function typedUserText(payload) {
+export function typedUserText(payload) {
   for (const block of responseItemBlocks(payload, "user")) {
-    const text = stripLeadingWrappers(block);
+    const text = typedPromptText(block);
     if (text) return text;
   }
   return "";
 }
 
-function responseItemText(payload, role) {
+export function responseItemText(payload, role) {
   return responseItemBlocks(payload, role).join("\n").trim();
 }
 
