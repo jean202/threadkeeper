@@ -27,15 +27,43 @@ export function deriveProjectKey(cwd) {
   return sanitizeString(base, PROJECT_KEY_MAX);
 }
 
+/**
+ * Text Codex puts in a user turn on the user's behalf: the environment block,
+ * AGENTS.md and other instructions. Recent rollouts also log the typed prompt
+ * as an event_msg, but older ones and some clients only have response_items,
+ * where these wrappers come first and must not become the title.
+ */
+const NOT_TYPED_BY_USER_RE =
+  /^\s*(<environment_context>|<user_instructions>|<permissions instructions>|<INSTRUCTIONS>|# AGENTS\.md instructions|<turn_aborted>)/;
+
+/** The text of a response_item message, from its input_text/output_text blocks. */
+function responseItemText(payload, role) {
+  if (payload?.type !== "message" || payload.role !== role || !Array.isArray(payload.content)) return "";
+  return payload.content
+    .filter((block) => typeof block?.text === "string" && /^(input|output)_text$/.test(block.type))
+    .map((block) => block.text)
+    .join("\n")
+    .trim();
+}
+
 function findFirstUserMessage(lines) {
+  // The event_msg is exactly what the user typed, so prefer it when present.
   for (let i = 1; i < lines.length; i += 1) {
     const obj = safeParseLine(lines[i]);
     if (!obj) continue;
     if (obj.type === "event_msg" && obj.payload?.type === "user_message") {
       const msg = obj.payload.message;
-      if (typeof msg === "string" && msg.length > 0) {
+      if (typeof msg === "string" && msg.trim().length > 0) {
         return sanitizeString(msg, INTENT_MAX);
       }
+    }
+  }
+  for (let i = 1; i < lines.length; i += 1) {
+    const obj = safeParseLine(lines[i]);
+    if (!obj || obj.type !== "response_item") continue;
+    const text = responseItemText(obj.payload, "user");
+    if (text && !NOT_TYPED_BY_USER_RE.test(text)) {
+      return sanitizeString(text, INTENT_MAX);
     }
   }
   return null;
@@ -44,16 +72,23 @@ function findFirstUserMessage(lines) {
 function findNextAction(lines) {
   let lastAgent = null;
   let lastUser = null;
+  let lastAssistantItem = null;
   for (let i = 1; i < lines.length; i += 1) {
     const obj = safeParseLine(lines[i]);
-    if (!obj || obj.type !== "event_msg") continue;
+    if (!obj) continue;
+    if (obj.type === "response_item") {
+      const text = responseItemText(obj.payload, "assistant");
+      if (text) lastAssistantItem = text;
+      continue;
+    }
+    if (obj.type !== "event_msg") continue;
     const pt = obj.payload?.type;
     const msg = obj.payload?.message;
     if (typeof msg !== "string" || msg.length === 0) continue;
     if (pt === "agent_message") lastAgent = msg;
     else if (pt === "user_message") lastUser = msg;
   }
-  const chosen = lastAgent ?? lastUser;
+  const chosen = lastAgent ?? lastAssistantItem ?? lastUser;
   return chosen == null ? null : sanitizeString(chosen, NEXT_ACTION_MAX);
 }
 

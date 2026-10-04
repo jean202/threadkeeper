@@ -150,3 +150,20 @@ test("enumerateCodexSessions walks a root, extracts sessions, returns summary", 
     "dddddddd-1111-2222-3333-444444444444",
   ]);
 });
+
+test("finds the prompt in rollouts that only log response_items", () => {
+  // Older rollouts and some clients (the VS Code extension) never write the
+  // event_msg, which left these sessions titled "<project> session <date>".
+  const result = extractSessionFromFile(fixture("response-items-only.jsonl"));
+  // The AGENTS.md and environment blocks come first and are not the prompt.
+  assert.equal(result.originalIntent, "녹음 내용 녹취한 것 중에 강수창 발언만 추려줘");
+  assert.equal(result.title, "녹음 내용 녹취한 것 중에 강수창 발언만 추려줘");
+  assert.equal(result.nextAction, "발언 12개를 찾았어요. 다음으로 시간순으로 정리할게요.");
+  assert.equal(result.projectKey, "record-to-evidence");
+});
+
+test("still prefers the event_msg prompt when both are present", () => {
+  // The response_item can carry client-expanded extras; the event_msg is what was typed.
+  const result = extractSessionFromFile(fixture("both-formats.jsonl"));
+  assert.equal(result.originalIntent, "Fix the login bug please.");
+});

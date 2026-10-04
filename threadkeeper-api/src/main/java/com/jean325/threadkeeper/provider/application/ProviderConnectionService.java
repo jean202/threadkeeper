@@ -213,9 +213,13 @@ public class ProviderConnectionService {
                 .findByProviderConnectionIdAndProviderSessionKey(connection.getId(), item.providerSessionKey())
                 .orElse(null);
         if (existing != null) {
+            String previousTitle = existing.getTitle();
             existing.refreshFromImport(item.sourcePath(), item.sourceType(), item.title(), item.metadataJson(), startedAt, lastActivityAt);
             // Refresh thread: advance nextAction + lastActivity; keep originalIntent stable (pass null).
             existing.getThread().applyImportedSession(null, item.nextAction(), lastActivityAt);
+            // ...unless the first import could only give it placeholders, which
+            // a better-informed bridge can now replace.
+            existing.getThread().adoptImportedNaming(previousTitle, item.title(), item.originalIntent());
             threadSnapshotRepository.save(new ThreadSnapshot(
                     existing.getThread(),
                     SnapshotType.PROGRESS,
@@ -319,7 +323,7 @@ public class ProviderConnectionService {
                         : item.projectKey(),
                 title,
                 ThreadPriority.MEDIUM,
-                "Imported from " + providerType.name() + " " + item.sourceType() + ".",
+                Thread.importPlaceholderIntent(providerType.name(), item.sourceType()),
                 "Review imported context and set next action.",
                 "Thread is classified and linked to a concrete task."
         ));

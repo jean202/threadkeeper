@@ -1,0 +1,6 @@
+{"timestamp":"2026-09-27T01:00:00.000Z","type":"session_meta","payload":{"id":"dddddddd-1111-2222-3333-444444444444","timestamp":"2026-09-27T01:00:00.000Z","cwd":"/Users/dev/work/record-to-evidence","originator":"codex_vscode","cli_version":"0.40.0","source":"vscode","model_provider":"openai"}}
+{"timestamp":"2026-09-27T01:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<user_instructions>\nFollow AGENTS.md.\n</user_instructions>"}]}}
+{"timestamp":"2026-09-27T01:00:01.500Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<environment_context>\n  <cwd>/Users/dev/work/record-to-evidence</cwd>\n</environment_context>"}]}}
+{"timestamp":"2026-09-27T01:00:02.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"녹음 내용 녹취한 것 중에 강수창 발언만 추려줘"}]}}
+{"timestamp":"2026-09-27T01:00:20.000Z","type":"response_item","payload":{"type":"reasoning","summary":[]}}
+{"timestamp":"2026-09-27T01:00:30.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"발언 12개를 찾았어요. 다음으로 시간순으로 정리할게요."}]}}

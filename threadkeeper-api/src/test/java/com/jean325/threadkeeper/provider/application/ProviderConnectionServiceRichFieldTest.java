@@ -100,4 +100,64 @@ class ProviderConnectionServiceRichFieldTest {
         assertThat(thread.getLastActivityAt().toString()).isEqualTo("2026-05-02T12:00:00Z");
         assertThat(s.getLastActivityAt().toString()).isEqualTo("2026-05-02T12:00:00Z");
     }
+
+    @Test
+    void refreshReplacesTheTitleAndIntentAnImportCouldOnlyGuess() {
+        // An older bridge could not find the prompt, so the session came in
+        // with a placeholder title and no intent.
+        BridgeImportPayload first = new BridgeImportPayload(
+                "2026-09-27T00:00:00Z", List.of("CODEX"),
+                List.of(new BridgeImportPayload.SourceSessionPayload(
+                        "CODEX", "session-P", "session", "/p/p.jsonl",
+                        "record-to-evidence session 2026-09-27", "2026-09-27T00:00:00Z", "{}",
+                        "2026-09-27T01:00:00Z", "2026-09-27T01:30:00Z",
+                        "record-to-evidence", null, null)));
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class), any())).thenReturn(first);
+        service.runImport(connectionId, new RunProviderImportRequest(null, null, "full", "codex", false));
+
+        BridgeImportPayload second = new BridgeImportPayload(
+                "2026-10-04T00:00:00Z", List.of("CODEX"),
+                List.of(new BridgeImportPayload.SourceSessionPayload(
+                        "CODEX", "session-P", "session", "/p/p.jsonl",
+                        "녹음 내용 정리", "2026-10-04T00:00:00Z", "{}",
+                        "2026-09-27T01:00:00Z", "2026-09-27T01:30:00Z",
+                        "record-to-evidence", "녹음 내용 정리해줘", "정리했어요")));
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class), any())).thenReturn(second);
+        service.runImport(connectionId, new RunProviderImportRequest(null, null, "full", "codex", false));
+
+        Thread thread = sourceSessionRepository
+                .findByProviderConnectionIdAndProviderSessionKey(connectionId, "session-P").orElseThrow()
+                .getThread();
+        assertThat(thread.getTitle()).isEqualTo("녹음 내용 정리");
+        assertThat(thread.getOriginalIntent()).isEqualTo("녹음 내용 정리해줘");
+    }
+
+    @Test
+    void refreshLeavesATitleTheImportDidNotGiveAlone() {
+        BridgeImportPayload first = new BridgeImportPayload(
+                "2026-09-27T00:00:00Z", List.of("CODEX"),
+                List.of(new BridgeImportPayload.SourceSessionPayload(
+                        "CODEX", "session-Q", "session", "/p/q.jsonl",
+                        "Imported title", "2026-09-27T00:00:00Z", "{}",
+                        null, null, "example-api", "Real intent", null)));
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class), any())).thenReturn(first);
+        service.runImport(connectionId, new RunProviderImportRequest(null, null, "full", "codex", false));
+
+        Thread thread = sourceSessionRepository
+                .findByProviderConnectionIdAndProviderSessionKey(connectionId, "session-Q").orElseThrow()
+                .getThread();
+        org.springframework.test.util.ReflectionTestUtils.setField(thread, "title", "Named by hand");
+
+        BridgeImportPayload second = new BridgeImportPayload(
+                "2026-10-04T00:00:00Z", List.of("CODEX"),
+                List.of(new BridgeImportPayload.SourceSessionPayload(
+                        "CODEX", "session-Q", "session", "/p/q.jsonl",
+                        "Newer import title", "2026-10-04T00:00:00Z", "{}",
+                        null, null, "example-api", "Another intent", null)));
+        when(bridgeImportClient.runImport(any(RunProviderImportRequest.class), any())).thenReturn(second);
+        service.runImport(connectionId, new RunProviderImportRequest(null, null, "full", "codex", false));
+
+        assertThat(thread.getTitle()).isEqualTo("Named by hand");
+        assertThat(thread.getOriginalIntent()).isEqualTo("Real intent");
+    }
 }
