@@ -28,22 +28,51 @@ export function deriveProjectKey(cwd) {
 }
 
 /**
- * Text Codex puts in a user turn on the user's behalf: the environment block,
- * AGENTS.md and other instructions. Recent rollouts also log the typed prompt
- * as an event_msg, but older ones and some clients only have response_items,
- * where these wrappers come first and must not become the title.
+ * Sections Codex puts in a user turn on the user's behalf: the environment
+ * block, AGENTS.md and other instructions. They come before the typed prompt,
+ * sometimes as their own content block and sometimes at the head of the same
+ * block, so they are stripped from the front rather than the whole text being
+ * judged by how it starts.
  */
-const NOT_TYPED_BY_USER_RE =
-  /^\s*(<environment_context>|<user_instructions>|<permissions instructions>|<INSTRUCTIONS>|# AGENTS\.md instructions|<turn_aborted>)/;
+const LEADING_WRAPPER_RES = [
+  /^\s*# AGENTS\.md instructions[^\n]*\n+\s*<INSTRUCTIONS>[\s\S]*?<\/INSTRUCTIONS>/,
+  /^\s*<([a-z_][a-z0-9_ -]*)>[\s\S]*?<\/\1>/i,
+];
 
-/** The text of a response_item message, from its input_text/output_text blocks. */
-function responseItemText(payload, role) {
-  if (payload?.type !== "message" || payload.role !== role || !Array.isArray(payload.content)) return "";
+function stripLeadingWrappers(text) {
+  let rest = text;
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const re of LEADING_WRAPPER_RES) {
+      const next = rest.replace(re, "");
+      if (next !== rest) {
+        rest = next;
+        changed = true;
+      }
+    }
+  }
+  return rest.trim();
+}
+
+/** The text blocks of a response_item message from `role`, in order. */
+function responseItemBlocks(payload, role) {
+  if (payload?.type !== "message" || payload.role !== role || !Array.isArray(payload.content)) return [];
   return payload.content
     .filter((block) => typeof block?.text === "string" && /^(input|output)_text$/.test(block.type))
-    .map((block) => block.text)
-    .join("\n")
-    .trim();
+    .map((block) => block.text);
+}
+
+/** The first thing in a user message the user actually typed, if any. */
+function typedUserText(payload) {
+  for (const block of responseItemBlocks(payload, "user")) {
+    const text = stripLeadingWrappers(block);
+    if (text) return text;
+  }
+  return "";
+}
+
+function responseItemText(payload, role) {
+  return responseItemBlocks(payload, role).join("\n").trim();
 }
 
 function findFirstUserMessage(lines) {
@@ -61,10 +90,8 @@ function findFirstUserMessage(lines) {
   for (let i = 1; i < lines.length; i += 1) {
     const obj = safeParseLine(lines[i]);
     if (!obj || obj.type !== "response_item") continue;
-    const text = responseItemText(obj.payload, "user");
-    if (text && !NOT_TYPED_BY_USER_RE.test(text)) {
-      return sanitizeString(text, INTENT_MAX);
-    }
+    const text = typedUserText(obj.payload);
+    if (text) return sanitizeString(text, INTENT_MAX);
   }
   return null;
 }

@@ -167,3 +167,11 @@ test("still prefers the event_msg prompt when both are present", () => {
   const result = extractSessionFromFile(fixture("both-formats.jsonl"));
   assert.equal(result.originalIntent, "Fix the login bug please.");
 });
+
+test("looks past wrapper blocks and wrapper sections at the head of a block", () => {
+  // Newer rollouts put AGENTS.md and the environment in their own blocks, and
+  // can prefix the typed prompt with another environment section.
+  const result = extractSessionFromFile(fixture("wrapper-blocks.jsonl"));
+  assert.equal(result.originalIntent, "대화 예시 캡쳐로 모델 성능 개선하기");
+  assert.equal(result.nextAction, "캡쳐 3장을 분석했어요.");
+});
