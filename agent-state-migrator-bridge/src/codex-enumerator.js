@@ -174,6 +174,20 @@ export function findRolloutFiles(rootDir) {
   return out;
 }
 
+/**
+ * A session another Codex agent started to hand off part of its work. Its
+ * instructions arrive as agent_message items ("Message Type: NEW_TASK"), and
+ * no person typed anything into it -- the user turns are only Codex's own
+ * AGENTS.md and environment blocks. The work already belongs to the session
+ * that delegated it, so like Claude's subagent transcripts it is not a thread.
+ */
+function isDelegatedSubSession(lines) {
+  return lines.some((line) => {
+    const obj = safeParseLine(line);
+    return obj?.type === "response_item" && obj.payload?.type === "agent_message";
+  });
+}
+
 export function extractSessionFromFile(filePath) {
   const raw = readFileSync(filePath, "utf8");
   const lines = raw.split(/\r?\n/).filter((line) => line.length > 0);
@@ -186,6 +200,9 @@ export function extractSessionFromFile(filePath) {
   const startedAt = payload.timestamp ?? null;
   const projectKey = deriveProjectKey(payload.cwd);
   const originalIntent = findFirstUserMessage(lines);
+  // Only when nobody typed into it: a session the user drives can still
+  // exchange messages with agents it spawned.
+  if (originalIntent === null && isDelegatedSubSession(lines)) return null;
   return {
     provider: "CODEX",
     providerSessionKey: payload.id,
@@ -213,7 +230,7 @@ export function enumerateCodexSessions(rootDir) {
         sessions.push(session);
       } else {
         skippedFiles += 1;
-        warnings.push({ file, reason: "no session_meta" });
+        warnings.push({ file, reason: "no session_meta, or a session another agent delegated" });
       }
     } catch (err) {
       skippedFiles += 1;

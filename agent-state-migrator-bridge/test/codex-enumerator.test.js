@@ -182,3 +182,14 @@ test("keeps a prompt the user wrapped in a tag of their own", () => {
   assert.equal(result.originalIntent, "<task>\n스코어 서비스 어드민 작업 범위 확인\n</task>");
   assert.equal(result.title, "<task> 스코어 서비스 어드민 작업 범위 확인 </task>");
 });
+
+test("leaves out a session another agent delegated, which nobody typed into", () => {
+  // Its only user turns are Codex's own blocks; the task came as agent_message.
+  assert.equal(extractSessionFromFile(fixture("delegated-subsession.jsonl")), null);
+});
+
+test("keeps a session the user drove even if it messaged agents", () => {
+  // A typed prompt means a person is behind it, whatever else it contains.
+  const result = extractSessionFromFile(fixture("user-driven-with-agents.jsonl"));
+  assert.equal(result.originalIntent, "대화 예시 캡쳐로 모델 성능 개선하기");
+});
