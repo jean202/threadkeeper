@@ -5,16 +5,7 @@ import DriftWarning from '@/components/DriftWarning';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 import { formatStaleness } from '@/lib/format';
-
-const RESUME_REASON_LABEL: Record<DashboardThread['resumeReason'], string> = {
-  COMPLETED: 'Completed',
-  BLOCKED: 'Blocked',
-  DRIFTING: 'Drifting from original intent',
-  STALE: 'Untouched for a while',
-  MISSING_NEXT_ACTION: 'No next action recorded',
-  HIGH_PRIORITY: 'High priority',
-  READY: 'Ready to continue',
-};
+import { PRIORITY_LABEL, RESUME_REASON_LABEL, label } from '@/lib/labels';
 
 function ThreadRow({ thread }: { thread: DashboardThread }) {
   return (
@@ -23,7 +14,7 @@ function ThreadRow({ thread }: { thread: DashboardThread }) {
         <strong>{thread.title}</strong>
       </Link>{' '}
       <span>
-        [{thread.priority}] {RESUME_REASON_LABEL[thread.resumeReason] ?? thread.resumeReason} ·{' '}
+        [{label(PRIORITY_LABEL, thread.priority)}] {label(RESUME_REASON_LABEL, thread.resumeReason)} ·{' '}
         {formatStaleness(thread.staleMinutes)}
       </span>
       {thread.driftStatus === 'DRIFTING' && (
@@ -31,7 +22,7 @@ function ThreadRow({ thread }: { thread: DashboardThread }) {
           <DriftWarning driftStatus={thread.driftStatus} driftScore={thread.driftScore} />
         </div>
       )}
-      <div>Next action: {thread.nextAction ?? '— not set —'}</div>
+      <div>다음 할 일: {thread.nextAction ?? '— 아직 없음 —'}</div>
     </li>
   );
 }
@@ -43,7 +34,7 @@ function Section({ title, threads }: { title: string; threads: DashboardThread[]
         {title} ({threads.length})
       </h2>
       {threads.length === 0 ? (
-        <p>None</p>
+        <p>없음</p>
       ) : (
         <ul>
           {threads.map((thread) => (
@@ -61,13 +52,13 @@ export default function Today() {
   );
   const dashboard = resource.data;
 
-  if (resource.loading) return <div>Loading today&apos;s dashboard...</div>;
+  if (resource.loading) return <div>오늘의 대시보드를 불러오는 중...</div>;
   if (!dashboard) {
     return (
       <div style={{ padding: '20px' }}>
-        <h1>Today</h1>
+        <h1>오늘</h1>
         <LoadError
-          error={resource.error ?? 'Failed to load the dashboard'}
+          error={resource.error ?? '대시보드를 불러오지 못했어요'}
           code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
@@ -89,30 +80,30 @@ export default function Today() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h1>Today</h1>
+      <h1>오늘</h1>
 
       <section style={{ marginBottom: '30px' }}>
-        <h2>Continue Now</h2>
+        <h2>지금 이어서 할 일</h2>
         {!continueNow ? (
-          <p>Nothing active to resume.</p>
+          <p>이어서 할 진행 중인 스레드가 없어요.</p>
         ) : (
           <div>
             <Link href={`/threads/${continueNow.threadId}`}>
               <strong>{continueNow.title}</strong>
             </Link>
             <p>
-              Why: {RESUME_REASON_LABEL[continueNow.resumeReason] ?? continueNow.resumeReason} ·{' '}
+              이유: {label(RESUME_REASON_LABEL, continueNow.resumeReason)} ·{' '}
               {formatStaleness(continueNow.staleMinutes)}
             </p>
-            <p>Next action: {continueNow.nextAction ?? '— not set —'}</p>
+            <p>다음 할 일: {continueNow.nextAction ?? '— 아직 없음 —'}</p>
           </div>
         )}
       </section>
 
-      <Section title="Active" threads={dashboard.activeThreads} />
-      <Section title="Stale" threads={dashboard.staleThreads} />
-      <Section title="Blocked" threads={dashboard.blockedThreads} />
-      <Section title="Completed Today" threads={dashboard.completedToday} />
+      <Section title="진행 중" threads={dashboard.activeThreads} />
+      <Section title="오래 멈춤" threads={dashboard.staleThreads} />
+      <Section title="막힘" threads={dashboard.blockedThreads} />
+      <Section title="오늘 완료" threads={dashboard.completedToday} />
     </div>
   );
 }

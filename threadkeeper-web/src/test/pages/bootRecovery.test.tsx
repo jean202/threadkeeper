@@ -38,18 +38,18 @@ describe('cold boot recovery', () => {
     await settle();
     // The page says it is still trying rather than dead-ending on an error.
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent('Could not reach the API');
-    expect(alert).toHaveTextContent('may still be booting');
-    expect(alert).toHaveTextContent('Retrying in 1s (1 failed)');
+    expect(alert).toHaveTextContent('API 서버에 연결할 수 없어요');
+    expect(alert).toHaveTextContent('아직 시작 중일 수 있어요');
+    expect(alert).toHaveTextContent('1초 뒤 다시 시도 (1번 실패)');
 
     await act(() => vi.advanceTimersByTimeAsync(1000));
-    expect(screen.getByRole('alert')).toHaveTextContent('Retrying in 2s (2 failed)');
+    expect(screen.getByRole('alert')).toHaveTextContent('2초 뒤 다시 시도 (2번 실패)');
 
     await act(() => vi.advanceTimersByTimeAsync(2000));
 
     // Recovered on its own: the dashboard is there and the error is gone.
-    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Continue Now' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '오늘' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '지금 이어서 할 일' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(client.getTodayDashboard).toHaveBeenCalledTimes(3);
   });
@@ -61,9 +61,9 @@ describe('cold boot recovery', () => {
     await settle();
     expect(screen.getByRole('alert')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Retry now' }));
+    await userEvent.click(screen.getByRole('button', { name: '지금 다시 시도' }));
 
-    expect(await screen.findByRole('heading', { name: 'Continue Now' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '지금 이어서 할 일' })).toBeInTheDocument();
   });
 
   it('does not retry when the API answered with a 4xx', async () => {
@@ -79,8 +79,8 @@ describe('cold boot recovery', () => {
     await settle();
 
     // No "Retrying in Ns" notice: waiting would not help.
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not load this page');
-    expect(screen.getByRole('alert')).not.toHaveTextContent('Retrying in');
+    expect(screen.getByRole('alert')).toHaveTextContent('이 페이지를 불러오지 못했어요');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('다시 시도 (');
 
     await act(() => vi.advanceTimersByTimeAsync(60_000));
     expect(client.getTodayDashboard).toHaveBeenCalledTimes(1);
@@ -101,13 +101,13 @@ describe('cold boot recovery', () => {
     await settle();
 
     const alert = screen.getByRole('alert');
-    expect(alert).toHaveTextContent('The database is not reachable.');
+    expect(alert).toHaveTextContent('데이터베이스에 연결할 수 없어요.');
     expect(alert).toHaveTextContent('Docker Desktop');
     // A 503 is worth waiting out: once Docker is back the page heals itself.
-    expect(alert).toHaveTextContent('Retrying in 1s (1 failed)');
+    expect(alert).toHaveTextContent('1초 뒤 다시 시도 (1번 실패)');
 
     await act(() => vi.advanceTimersByTimeAsync(1000));
-    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '오늘' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

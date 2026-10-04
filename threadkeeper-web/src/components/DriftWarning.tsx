@@ -1,4 +1,5 @@
 import { DriftStatus } from '@/types/thread';
+import { DRIFT_LABEL, label } from '@/lib/labels';
 
 interface Props {
   driftStatus: DriftStatus;
@@ -11,23 +12,24 @@ interface Props {
  */
 export default function DriftWarning({ driftStatus, driftScore }: Props) {
   const score = driftScore === null ? null : `${Math.round(driftScore)}%`;
+  const offIntent = score ? ` (처음 의도와 ${score} 다름)` : '';
 
   if (driftStatus === 'DRIFTING') {
     return (
-      <strong title="Recent activity has little in common with the original intent">
-        ⚠ Drifting{score ? ` (${score} off intent)` : ''}
+      <strong title="최근 활동이 처음 의도와 거의 겹치지 않아요">
+        ⚠ 방향 이탈{offIntent}
       </strong>
     );
   }
 
   if (driftStatus === 'ON_TRACK' && score === null) {
-    return <span title="No recorded activity to compare yet">On track (not yet measured)</span>;
+    return <span title="아직 비교할 활동 기록이 없어요">정상 진행 (아직 측정 전)</span>;
   }
 
   return (
     <span>
-      {driftStatus === 'ON_TRACK' ? 'On track' : driftStatus}
-      {score ? ` (${score} off intent)` : ''}
+      {label(DRIFT_LABEL, driftStatus)}
+      {offIntent}
     </span>
   );
 }

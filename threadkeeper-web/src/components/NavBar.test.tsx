@@ -11,13 +11,13 @@ describe('nav bar', () => {
     pathname.current = '/settings/providers';
     render(<NavBar />);
 
-    const nav = screen.getByRole('navigation', { name: 'Main' });
+    const nav = screen.getByRole('navigation', { name: '주 메뉴' });
     for (const [label, href] of [
-      ['Threads', '/'],
-      ['Today', '/today'],
-      ['New Thread', '/threads/new'],
-      ['Notifications', '/settings/notifications'],
-      ['Providers', '/settings/providers'],
+      ['스레드', '/'],
+      ['오늘', '/today'],
+      ['새 스레드', '/threads/new'],
+      ['알림', '/settings/notifications'],
+      ['AI 도구 연동', '/settings/providers'],
     ]) {
       expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href);
     }
@@ -28,16 +28,16 @@ describe('nav bar', () => {
     pathname.current = '/today';
     render(<NavBar />);
 
-    expect(screen.getByRole('link', { name: 'Today' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'Threads' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: '오늘' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: '스레드' })).not.toHaveAttribute('aria-current');
   });
 
   it('does not mark the home link on every page just because its href is /', () => {
     pathname.current = '/settings/notifications';
     render(<NavBar />);
 
-    expect(screen.getByRole('link', { name: 'Threads' })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: 'Notifications' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '스레드' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: '알림' })).toHaveAttribute(
       'aria-current',
       'page',
     );

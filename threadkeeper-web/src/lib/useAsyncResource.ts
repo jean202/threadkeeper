@@ -100,7 +100,7 @@ export function useAsyncResource<T>(
       } catch (err) {
         if (cancelled) return;
         attempt += 1;
-        setError(err instanceof Error ? err.message : 'Request failed');
+        setError(err instanceof Error ? err.message : '요청에 실패했어요');
         setErrorCode(apiErrorCode(err));
         setFailures(attempt);
 

@@ -7,6 +7,7 @@ import PortfolioReadinessBadge from '@/components/PortfolioReadinessBadge';
 import ThreadSearchForm from '@/components/ThreadSearchForm';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
+import { STATUS_LABEL, label } from '@/lib/labels';
 
 interface HomeData {
   threads: ThreadResponse[];
@@ -50,12 +51,12 @@ export default function Home() {
 
   const loaded = resource.data;
   const results = !loaded ? null : loaded.threads.length === 0 ? (
-    <p>{filtered ? 'No threads match these filters.' : 'No threads found'}</p>
+    <p>{filtered ? '조건에 맞는 스레드가 없어요.' : '아직 스레드가 없어요.'}</p>
   ) : (
     <ul>
       {loaded.threads.map((thread) => (
         <li key={thread.id}>
-          <Link href={`/threads/${thread.id}`}>{thread.title}</Link> - {thread.status}
+          <Link href={`/threads/${thread.id}`}>{thread.title}</Link> - {label(STATUS_LABEL, thread.status)}
           <PortfolioReadinessBadge readiness={loaded.readiness.get(thread.projectKey)} />
         </li>
       ))}
@@ -65,13 +66,13 @@ export default function Home() {
   return (
     <div style={{ padding: '20px' }}>
       <h1>ThreadKeeper</h1>
-      <h2>Threads</h2>
+      <h2>스레드</h2>
       <ThreadSearchForm onSearch={setSearch} busy={searching} />
 
-      {resource.loading && <div>Loading...</div>}
+      {resource.loading && <div>불러오는 중...</div>}
       {!resource.loading && (!resource.data || searchFailed) && (
         <LoadError
-          error={resource.error ?? 'Failed to load threads'}
+          error={resource.error ?? '스레드 목록을 불러오지 못했어요'}
           code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}

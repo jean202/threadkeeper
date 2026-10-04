@@ -236,7 +236,8 @@ export class ThreadKeeperClient {
   async runProviderImport(
     connectionId: number,
     data: {
-      migratorPath: string;
+      /** Only needed for providers other than Codex and Claude. */
+      migratorPath?: string;
       bridgePath?: string;
       profile?: string;
       target?: string;

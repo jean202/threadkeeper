@@ -9,6 +9,17 @@ import DriftWarning from '@/components/DriftWarning';
 import LoadError from '@/components/LoadError';
 import { useAsyncResource } from '@/lib/useAsyncResource';
 import { formatDate, formatTimestamp } from '@/lib/format';
+import {
+  CHANNEL_LABEL,
+  DELIVERY_LABEL,
+  HANDOFF_STATUS_LABEL,
+  PRIORITY_LABEL,
+  PROVIDER_LABEL,
+  RULE_TYPE_LABEL,
+  SNAPSHOT_LABEL,
+  STATUS_LABEL,
+  label,
+} from '@/lib/labels';
 
 const PROVIDERS: ProviderType[] = ['CLAUDE', 'CODEX', 'GEMINI', 'GROK'];
 
@@ -56,18 +67,18 @@ export default function ThreadDetail() {
       setNextActionEdit(null);
       resource.reload();
     } catch (err) {
-      setActionError(describeApiError(err, `Failed to ${name}`));
+      setActionError(describeApiError(err, `${name}에 실패했어요`));
     } finally {
       setBusy(null);
     }
   };
 
-  if (resource.loading) return <div>Loading...</div>;
+  if (resource.loading) return <div>불러오는 중...</div>;
   if (!thread) {
     return (
       <div style={{ padding: '20px' }}>
         <LoadError
-          error={resource.error ?? 'Thread not found'}
+          error={resource.error ?? '스레드를 찾을 수 없어요'}
           code={resource.errorCode}
           failures={resource.failures}
           retrying={resource.retrying}
@@ -85,33 +96,33 @@ export default function ThreadDetail() {
       <h1>{thread.title}</h1>
 
       <section style={{ marginBottom: '30px' }}>
-        <h2>Overview</h2>
-        <p><strong>Status:</strong> {thread.status}</p>
-        <p><strong>Priority:</strong> {thread.priority}</p>
+        <h2>개요</h2>
+        <p><strong>상태:</strong> {label(STATUS_LABEL, thread.status)}</p>
+        <p><strong>우선순위:</strong> {label(PRIORITY_LABEL, thread.priority)}</p>
         <p>
-          <strong>Drift:</strong>{' '}
+          <strong>방향:</strong>{' '}
           <DriftWarning driftStatus={thread.driftStatus} driftScore={thread.driftScore} />
         </p>
         {readiness && (
-          <p><strong>Portfolio:</strong> <PortfolioReadinessBadge readiness={readiness} /></p>
+          <p><strong>포트폴리오:</strong> <PortfolioReadinessBadge readiness={readiness} /></p>
         )}
-        <p><strong>Created:</strong> {formatDate(thread.createdAt)}</p>
+        <p><strong>만든 날:</strong> {formatDate(thread.createdAt)}</p>
       </section>
 
       <section style={{ marginBottom: '30px' }}>
-        <h2>Goals & Context</h2>
-        <p><strong>Original Intent:</strong> {thread.originalIntent}</p>
-        <p><strong>Today&apos;s Goal:</strong> {thread.todayGoal ?? '—'}</p>
-        <p><strong>Done Condition:</strong> {thread.doneCondition ?? '—'}</p>
-        <p><strong>Next Action:</strong> {thread.currentNextAction ?? '—'}</p>
+        <h2>목표와 맥락</h2>
+        <p><strong>처음 의도:</strong> {thread.originalIntent}</p>
+        <p><strong>오늘의 목표:</strong> {thread.todayGoal ?? '—'}</p>
+        <p><strong>완료 조건:</strong> {thread.doneCondition ?? '—'}</p>
+        <p><strong>다음 할 일:</strong> {thread.currentNextAction ?? '—'}</p>
       </section>
 
       <section style={{ marginBottom: '30px' }}>
-        <h2>Actions</h2>
-        {actionError && <p role="alert">Error: {actionError}</p>}
+        <h2>작업</h2>
+        {actionError && <p role="alert">오류: {actionError}</p>}
 
         <div style={{ marginBottom: '16px' }}>
-          <label htmlFor="nextAction"><strong>Pin next action</strong></label>
+          <label htmlFor="nextAction"><strong>다음 할 일 정하기</strong></label>
           <textarea
             id="nextAction"
             value={nextActionDraft}
@@ -119,33 +130,33 @@ export default function ThreadDetail() {
             maxLength={2000}
             rows={2}
             style={{ width: '100%', padding: '8px' }}
-            placeholder="The one concrete thing to do when you come back"
+            placeholder="돌아왔을 때 바로 할 구체적인 한 가지"
           />
           <button
             onClick={() =>
-              runAction('pin the next action', () =>
+              runAction('다음 할 일 저장', () =>
                 threadKeeperClient.updateNextAction(id, nextActionDraft),
               )
             }
             disabled={busy !== null || nextActionDraft.trim() === ''}
           >
-            {busy === 'pin the next action' ? 'Saving...' : 'Pin Next Action'}
+            {busy === '다음 할 일 저장' ? '저장 중...' : '다음 할 일 저장'}
           </button>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label htmlFor="progressNote"><strong>Add progress snapshot</strong></label>
+          <label htmlFor="progressNote"><strong>진행 기록 남기기</strong></label>
           <textarea
             id="progressNote"
             value={progressNote}
             onChange={(e) => setProgressNote(e.target.value)}
             rows={2}
             style={{ width: '100%', padding: '8px' }}
-            placeholder="What changed since last time?"
+            placeholder="지난번 이후 무엇이 바뀌었나요?"
           />
           <button
             onClick={() =>
-              runAction('add the snapshot', async () => {
+              runAction('진행 기록 추가', async () => {
                 await threadKeeperClient.createSnapshot(id, {
                   snapshotType: 'PROGRESS',
                   summary: progressNote,
@@ -155,12 +166,12 @@ export default function ThreadDetail() {
             }
             disabled={busy !== null || progressNote.trim() === ''}
           >
-            {busy === 'add the snapshot' ? 'Saving...' : 'Add Snapshot'}
+            {busy === '진행 기록 추가' ? '저장 중...' : '기록 추가'}
           </button>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label htmlFor="targetProvider"><strong>Create handoff draft</strong></label>{' '}
+          <label htmlFor="targetProvider"><strong>핸드오프 초안 만들기</strong></label>{' '}
           <select
             id="targetProvider"
             value={targetProvider}
@@ -168,64 +179,64 @@ export default function ThreadDetail() {
           >
             {PROVIDERS.map((provider) => (
               <option key={provider} value={provider}>
-                {provider}
+                {PROVIDER_LABEL[provider]}
               </option>
             ))}
           </select>{' '}
           <button
             onClick={() =>
-              runAction('create the handoff draft', () =>
+              runAction('핸드오프 초안 생성', () =>
                 threadKeeperClient.generateHandoffDraft(id, { targetProvider }),
               )
             }
             disabled={busy !== null}
           >
-            {busy === 'create the handoff draft' ? 'Creating...' : 'Create Handoff'}
+            {busy === '핸드오프 초안 생성' ? '만드는 중...' : '핸드오프 만들기'}
           </button>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
           <button
-            onClick={() => runAction('re-evaluate drift', () => threadKeeperClient.evaluateDrift(id))}
+            onClick={() => runAction('방향 다시 평가', () => threadKeeperClient.evaluateDrift(id))}
             disabled={busy !== null}
           >
-            {busy === 're-evaluate drift' ? 'Evaluating...' : 'Re-evaluate Drift'}
+            {busy === '방향 다시 평가' ? '평가 중...' : '방향 다시 평가'}
           </button>
         </div>
 
         <div>
           <button
             onClick={() =>
-              runAction('mark the thread completed', () =>
+              runAction('완료 처리', () =>
                 threadKeeperClient.updateThreadStatus(id, 'COMPLETED'),
               )
             }
             disabled={busy !== null || thread.status === 'COMPLETED'}
           >
-            {busy === 'mark the thread completed' ? 'Saving...' : 'Mark Completed'}
+            {busy === '완료 처리' ? '저장 중...' : '완료로 표시'}
           </button>{' '}
           {thread.status !== 'ACTIVE' && (
             <button
               onClick={() =>
-                runAction('reopen the thread', () => threadKeeperClient.updateThreadStatus(id, 'ACTIVE'))
+                runAction('다시 열기', () => threadKeeperClient.updateThreadStatus(id, 'ACTIVE'))
               }
               disabled={busy !== null}
             >
-              {busy === 'reopen the thread' ? 'Saving...' : 'Reopen'}
+              {busy === '다시 열기' ? '저장 중...' : '다시 열기'}
             </button>
           )}
         </div>
       </section>
 
       <section style={{ marginBottom: '30px' }}>
-        <h2>Source Sessions ({thread.sourceSessions.length})</h2>
+        <h2>원본 세션 ({thread.sourceSessions.length})</h2>
         {thread.sourceSessions.length === 0 ? (
-          <p>No source sessions</p>
+          <p>연결된 세션이 없어요</p>
         ) : (
           <ul>
             {thread.sourceSessions.map((session) => (
               <li key={session.id}>
-                {session.title ?? session.providerSessionKey} ({session.provider}
+                {session.title ?? session.providerSessionKey} ({label(PROVIDER_LABEL, session.provider)}
                 {session.sourceType ? ` / ${session.sourceType}` : ''})
               </li>
             ))}
@@ -234,14 +245,14 @@ export default function ThreadDetail() {
       </section>
 
       <section style={{ marginBottom: '30px' }}>
-        <h2>Snapshots ({thread.snapshots.length})</h2>
+        <h2>진행 기록 ({thread.snapshots.length})</h2>
         {thread.snapshots.length === 0 ? (
-          <p>No snapshots</p>
+          <p>진행 기록이 없어요</p>
         ) : (
           <ul>
             {thread.snapshots.map((snapshot) => (
               <li key={snapshot.id}>
-                {snapshot.snapshotType} - {formatTimestamp(snapshot.createdAt)}
+                {label(SNAPSHOT_LABEL, snapshot.snapshotType)} - {formatTimestamp(snapshot.createdAt)}
                 <div>{snapshot.summary}</div>
               </li>
             ))}
@@ -250,34 +261,34 @@ export default function ThreadDetail() {
       </section>
 
       <section style={{ marginBottom: '30px' }}>
-        <h2>Handoff</h2>
+        <h2>핸드오프</h2>
         {!latestHandoff ? (
           <p>
-            No handoff yet.{' '}
-            <Link href={`/threads/${thread.id}/handoff`}>Create Draft</Link>
+            아직 핸드오프가 없어요.{' '}
+            <Link href={`/threads/${thread.id}/handoff`}>초안 만들기</Link>
           </p>
         ) : (
           <div>
-            <p><strong>Status:</strong> {latestHandoff.status}</p>
-            <p><strong>Target Provider:</strong> {latestHandoff.targetProvider}</p>
-            <p><strong>Reason:</strong> {latestHandoff.reason ?? '—'}</p>
-            <p><strong>What Changed:</strong> {latestHandoff.whatChanged ?? '—'}</p>
-            <p><strong>Blockers:</strong> {latestHandoff.blockers ?? '—'}</p>
-            <p><strong>Next Action:</strong> {latestHandoff.nextAction ?? '—'}</p>
-            <Link href={`/threads/${thread.id}/handoff`}>View/Edit Handoff</Link>
+            <p><strong>상태:</strong> {label(HANDOFF_STATUS_LABEL, latestHandoff.status)}</p>
+            <p><strong>넘겨받을 AI 도구:</strong> {label(PROVIDER_LABEL, latestHandoff.targetProvider)}</p>
+            <p><strong>이유:</strong> {latestHandoff.reason ?? '—'}</p>
+            <p><strong>한 일:</strong> {latestHandoff.whatChanged ?? '—'}</p>
+            <p><strong>막힌 점:</strong> {latestHandoff.blockers ?? '—'}</p>
+            <p><strong>다음 할 일:</strong> {latestHandoff.nextAction ?? '—'}</p>
+            <Link href={`/threads/${thread.id}/handoff`}>핸드오프 보기/수정</Link>
           </div>
         )}
       </section>
 
       <section>
-        <h2>Notifications ({thread.notificationEvents.length})</h2>
+        <h2>알림 ({thread.notificationEvents.length})</h2>
         {thread.notificationEvents.length === 0 ? (
-          <p>No notifications</p>
+          <p>알림이 없어요</p>
         ) : (
           <ul>
             {thread.notificationEvents.slice(0, 5).map((event) => (
               <li key={event.id}>
-                {event.eventType} ({event.channel} / {event.deliveryStatus}) -{' '}
+                {label(RULE_TYPE_LABEL, event.eventType)} ({label(CHANNEL_LABEL, event.channel)} / {label(DELIVERY_LABEL, event.deliveryStatus)}) -{' '}
                 {formatTimestamp(event.createdAt)}
               </li>
             ))}

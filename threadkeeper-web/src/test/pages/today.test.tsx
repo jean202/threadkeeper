@@ -21,15 +21,15 @@ describe('today dashboard', () => {
   it('reads the server ranking rather than filtering the thread list itself', async () => {
     render(<Today />);
 
-    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '오늘' })).toBeInTheDocument();
     expect(client.getTodayDashboard).toHaveBeenCalled();
   });
 
   it('shows every section the MVP screen calls for', async () => {
     render(<Today />);
 
-    await screen.findByRole('heading', { name: 'Continue Now' });
-    for (const section of ['Active (2)', 'Stale (1)', 'Blocked (0)', 'Completed Today (0)']) {
+    await screen.findByRole('heading', { name: '지금 이어서 할 일' });
+    for (const section of ['진행 중 (2)', '오래 멈춤 (1)', '막힘 (0)', '오늘 완료 (0)']) {
       expect(screen.getByRole('heading', { name: section })).toBeInTheDocument();
     }
   });
@@ -37,13 +37,13 @@ describe('today dashboard', () => {
   it('puts the top-ranked thread in Continue Now and links to it', async () => {
     render(<Today />);
 
-    const continueNow = (await screen.findByRole('heading', { name: 'Continue Now' })).closest(
+    const continueNow = (await screen.findByRole('heading', { name: '지금 이어서 할 일' })).closest(
       'section',
     )!;
     const link = continueNow.querySelector('a')!;
     expect(link).toHaveAttribute('href', '/threads/1');
     expect(continueNow).toHaveTextContent('Fix web API contract');
-    expect(continueNow).toHaveTextContent('Untouched for a while');
+    expect(continueNow).toHaveTextContent('한동안 손대지 않음');
   });
 
   // recommendedOrder carries ids now, so Continue Now is a lookup rather than a
@@ -55,7 +55,7 @@ describe('today dashboard', () => {
     });
     render(<Today />);
 
-    const continueNow = (await screen.findByRole('heading', { name: 'Continue Now' })).closest(
+    const continueNow = (await screen.findByRole('heading', { name: '지금 이어서 할 일' })).closest(
       'section',
     )!;
     expect(continueNow).toHaveTextContent(todayDashboard.activeThreads[1].title);
@@ -66,20 +66,20 @@ describe('today dashboard', () => {
     client.getTodayDashboard.mockResolvedValue({ ...todayDashboard, recommendedOrder: [9999] });
     render(<Today />);
 
-    expect(await screen.findByText('Nothing active to resume.')).toBeInTheDocument();
+    expect(await screen.findByText('이어서 할 진행 중인 스레드가 없어요.')).toBeInTheDocument();
   });
 
   it('warns about a drifting thread', async () => {
     render(<Today />);
 
-    expect(await screen.findByText(/Drifting \(100% off intent\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/방향 이탈 \(처음 의도와 100% 다름\)/)).toBeInTheDocument();
   });
 
   it('renders staleness in human units', async () => {
     render(<Today />);
 
     // 480 minutes should read as hours, not "480m".
-    expect(await screen.findAllByText(/8h idle/)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/8시간째 멈춤/)).not.toHaveLength(0);
   });
 
   it('says so plainly when there is nothing to resume', async () => {
@@ -92,6 +92,6 @@ describe('today dashboard', () => {
     });
     render(<Today />);
 
-    expect(await screen.findByText('Nothing active to resume.')).toBeInTheDocument();
+    expect(await screen.findByText('이어서 할 진행 중인 스레드가 없어요.')).toBeInTheDocument();
   });
 });

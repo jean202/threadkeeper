@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
 import { describeApiError, threadKeeperClient } from '@/api/client';
 import { ThreadPriority } from '@/types/thread';
+import { PRIORITY_LABEL } from '@/lib/labels';
 
 const PRIORITIES: ThreadPriority[] = ['HIGH', 'MEDIUM', 'LOW'];
 
@@ -35,23 +36,23 @@ export default function NewThread() {
       // action lives.
       await router.push(`/threads/${created.id}`);
     } catch (err) {
-      setError(describeApiError(err, 'Failed to create the thread'));
+      setError(describeApiError(err, '스레드를 만들지 못했어요'));
       setSubmitting(false);
     }
   };
 
   return (
     <div style={{ padding: '20px', maxWidth: '640px' }}>
-      <h1>New Thread</h1>
+      <h1>새 스레드</h1>
       <p>
-        The original intent is stored once and never rewritten by imports -- it is what you come back
-        to when you have forgotten why this thread exists.
+        처음 의도는 한 번 저장되면 가져오기로 덮어쓰지 않아요. 이 스레드를 왜 시작했는지 잊었을 때
+        돌아와서 보는 기준이에요.
       </p>
 
-      {error && <p role="alert">Error: {error}</p>}
+      {error && <p role="alert">오류: {error}</p>}
 
       <form onSubmit={onSubmit}>
-        <label htmlFor="projectKey">Project key</label>
+        <label htmlFor="projectKey">프로젝트</label>
         <input
           id="projectKey"
           value={projectKey}
@@ -62,7 +63,7 @@ export default function NewThread() {
           placeholder="threadkeeper"
         />
 
-        <label htmlFor="title">Title</label>
+        <label htmlFor="title">제목</label>
         <input
           id="title"
           value={title}
@@ -70,10 +71,10 @@ export default function NewThread() {
           maxLength={200}
           required
           style={fieldStyle}
-          placeholder="Implement billing webhook retry logic"
+          placeholder="결제 웹훅 재시도 로직 구현"
         />
 
-        <label htmlFor="priority">Priority</label>
+        <label htmlFor="priority">우선순위</label>
         <select
           id="priority"
           value={priority}
@@ -82,12 +83,12 @@ export default function NewThread() {
         >
           {PRIORITIES.map((value) => (
             <option key={value} value={value}>
-              {value}
+              {PRIORITY_LABEL[value]}
             </option>
           ))}
         </select>
 
-        <label htmlFor="originalIntent">Original intent</label>
+        <label htmlFor="originalIntent">처음 의도</label>
         <textarea
           id="originalIntent"
           value={originalIntent}
@@ -95,10 +96,10 @@ export default function NewThread() {
           required
           rows={4}
           style={fieldStyle}
-          placeholder="What are you actually trying to accomplish?"
+          placeholder="실제로 이루고 싶은 게 무엇인가요?"
         />
 
-        <label htmlFor="todayGoal">Today&apos;s goal</label>
+        <label htmlFor="todayGoal">오늘의 목표</label>
         <textarea
           id="todayGoal"
           value={todayGoal}
@@ -108,7 +109,7 @@ export default function NewThread() {
           style={fieldStyle}
         />
 
-        <label htmlFor="doneCondition">Done condition</label>
+        <label htmlFor="doneCondition">완료 조건</label>
         <textarea
           id="doneCondition"
           value={doneCondition}
@@ -116,11 +117,11 @@ export default function NewThread() {
           maxLength={2000}
           rows={2}
           style={fieldStyle}
-          placeholder="How will you know this is finished?"
+          placeholder="무엇이 되면 끝났다고 볼 수 있나요?"
         />
 
         <button type="submit" disabled={submitting} style={{ padding: '10px 20px', marginTop: '10px' }}>
-          {submitting ? 'Creating...' : 'Create Thread'}
+          {submitting ? '만드는 중...' : '스레드 만들기'}
         </button>
       </form>
     </div>

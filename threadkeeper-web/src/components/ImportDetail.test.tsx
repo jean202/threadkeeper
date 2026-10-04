@@ -29,10 +29,10 @@ describe('import detail', () => {
     const user = userEvent.setup();
     render(<ImportDetail connectionId={1} />);
 
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
 
-    expect(await screen.findByText('Linked threads: 2')).toBeInTheDocument();
-    expect(screen.getByText('Sessions imported: 3')).toBeInTheDocument();
+    expect(await screen.findByText('연결된 스레드: 2개')).toBeInTheDocument();
+    expect(screen.getByText('가져온 세션: 3개')).toBeInTheDocument();
     expect(client.getLatestImport).toHaveBeenCalledWith(1);
   });
 
@@ -40,10 +40,10 @@ describe('import detail', () => {
     const user = userEvent.setup();
     render(<ImportDetail connectionId={1} />);
 
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
 
     expect(
-      await screen.findByText(/the last run brought nothing new/),
+      await screen.findByText(/마지막 실행에서는 새로 가져온 게 없어요/),
     ).toBeInTheDocument();
   });
 
@@ -59,32 +59,32 @@ describe('import detail', () => {
     const user = userEvent.setup();
     render(<ImportDetail connectionId={1} />);
 
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
 
-    await screen.findByText('Linked threads: 2');
-    expect(screen.queryByText(/brought nothing new/)).not.toBeInTheDocument();
+    await screen.findByText('연결된 스레드: 2개');
+    expect(screen.queryByText(/새로 가져온 게 없어요/)).not.toBeInTheDocument();
   });
 
   it('lists recent sessions with a link to the thread', async () => {
     const user = userEvent.setup();
     render(<ImportDetail connectionId={1} />);
 
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
 
     expect(await screen.findByText(/Contract fix session/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'thread 1' })).toHaveAttribute('href', '/threads/1');
+    expect(screen.getByRole('link', { name: '스레드 1' })).toHaveAttribute('href', '/threads/1');
   });
 
   it('refetches on reopen, since an import may have run since', async () => {
     const user = userEvent.setup();
     render(<ImportDetail connectionId={1} />);
 
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
-    await screen.findByText('Linked threads: 2');
-    await user.click(screen.getByRole('button', { name: 'Hide import details' }));
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
+    await screen.findByText('연결된 스레드: 2개');
+    await user.click(screen.getByRole('button', { name: '가져오기 상세 닫기' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
 
-    await screen.findByText('Linked threads: 2');
+    await screen.findByText('연결된 스레드: 2개');
     expect(client.getLatestImport).toHaveBeenCalledTimes(2);
   });
 
@@ -93,7 +93,7 @@ describe('import detail', () => {
     const user = userEvent.setup();
     render(<ImportDetail connectionId={1} />);
 
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Network Error');
   });
@@ -107,9 +107,9 @@ describe('import detail', () => {
     const user = userEvent.setup();
     render(<ImportDetail connectionId={1} />);
 
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
 
-    expect(await screen.findByText(/the last run brought nothing new/)).toBeInTheDocument();
+    expect(await screen.findByText(/마지막 실행에서는 새로 가져온 게 없어요/)).toBeInTheDocument();
   });
 
   it('handles a connection that has never imported', async () => {
@@ -124,9 +124,9 @@ describe('import detail', () => {
     const user = userEvent.setup();
     render(<ImportDetail connectionId={1} />);
 
-    await user.click(screen.getByRole('button', { name: 'Import details' }));
+    await user.click(screen.getByRole('button', { name: '가져오기 상세' }));
 
-    expect(await screen.findByText('No sessions imported yet.')).toBeInTheDocument();
-    expect(screen.getByText('Last run attempted: never')).toBeInTheDocument();
+    expect(await screen.findByText('아직 가져온 세션이 없어요.')).toBeInTheDocument();
+    expect(screen.getByText('마지막 실행: 없음')).toBeInTheDocument();
   });
 });
