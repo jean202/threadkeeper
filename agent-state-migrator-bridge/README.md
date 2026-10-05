@@ -29,6 +29,15 @@ Claude Code writes on the user's behalf are skipped. Its project key is the
 basename of the session's working directory, with a `.claude/worktrees/<name>`
 suffix stripped so worktree sessions join their main project.
 
+Two kinds of Codex rollout are not threads of their own. A sub-session another
+Codex agent delegated work to has no typed prompt and belongs to the delegating
+session. A Claude session Codex imported is replayed as `external-import-turn-N`
+turns, and the Claude original is already imported from `~/.claude/projects`, so
+those turns are dropped: a rollout with nothing else is skipped, and one Codex
+went on with is read from its first own turn.
+`scripts/remove-skipped-codex-threads.sh` removes threads imported from either
+before they were skipped (preview by default, `--apply` to delete).
+
 ## Repeated prompts
 
 When three or more Codex or Claude sessions in the same project open with the
@@ -55,7 +64,7 @@ node src/cli.js resume --session 01a0e2b5           # or by part of its id
 
 It picks the latest rollout (by mtime) that ran in `--cwd` (default: the current
 folder), treating a `.claude/worktrees/<name>` folder as its project and skipping
-sessions another agent spawned. The packet has the stop reason and, for the usage
+sessions another agent spawned and Claude sessions Codex imported. The packet has the stop reason and, for the usage
 limit, when it resets; the first prompt; the last two finished turns; and, for
 the last turn, the request (without the context Codex wraps around it), Codex's
 progress notes, the files it patched, its last commands with exit codes, and its

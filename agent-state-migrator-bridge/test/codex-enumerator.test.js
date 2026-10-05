@@ -201,17 +201,49 @@ test("keeps a session the user drove even if it messaged agents", () => {
   assert.equal(result.originalIntent, "대화 예시 캡쳐로 모델 성능 개선하기");
 });
 
-test("lists the delegated sub-sessions it leaves out, and nothing else", async () => {
-  const { mkdtempSync, mkdirSync, copyFileSync } = await import("node:fs");
+test("leaves out a Claude session Codex imported, which Codex never ran", () => {
+  // Codex replays an imported transcript as "external-import-turn-N" turns. The
+  // Claude original is imported on its own, so this would be a second copy.
+  assert.equal(extractSessionFromFile(fixture("imported-claude-session.jsonl")), null);
+});
+
+test("keeps an imported session Codex went on with, from its own first turn", () => {
+  const result = extractSessionFromFile(fixture("imported-then-continued.jsonl"));
+  assert.equal(result.originalIntent, "전사 벤치마크 돌려줘");
+  assert.equal(result.title, "전사 벤치마크 돌려줘");
+  assert.equal(result.nextAction, "벤치마크 결과 3.2배 빨라졌어요.");
+  assert.equal(result.lastActivityAt, "2026-09-09T03:05:01.000Z");
+});
+
+test("lists every key an import may have stored for the sessions it now skips, and nothing else", async () => {
+  const { mkdtempSync, mkdirSync, readFileSync, writeFileSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
-  const { listDelegatedSubSessionIds } = await import("../src/codex-enumerator.js");
+  const { listSkippedSessionKeys } = await import("../src/codex-enumerator.js");
   // A ~/.codex/sessions-shaped tree: only rollout-*.jsonl files are considered.
   const root = mkdtempSync(path.join(tmpdir(), "codex-sessions-"));
   const day = path.join(root, "2026", "09", "17");
   mkdirSync(day, { recursive: true });
-  for (const name of ["delegated-subsession", "user-driven-with-agents", "no-messages", "happy"]) {
-    copyFileSync(fixture(`${name}.jsonl`), path.join(day, `rollout-${name}.jsonl`));
+  const copy = (name, as, edit = (text) => text) =>
+    writeFileSync(path.join(day, `rollout-${as}.jsonl`), edit(readFileSync(fixture(`${name}.jsonl`), "utf8")));
+  for (const name of ["delegated-subsession", "user-driven-with-agents", "no-messages", "happy", "imported-then-continued"]) {
+    copy(name, name);
+  }
+  const importedId = "cdcdcdcd-1111-2222-3333-444444444444";
+  copy("imported-claude-session", "imported-lone", (text) =>
+    text.replaceAll(importedId, "lone0000-1111-2222-3333-444444444444").replaceAll("Review this change for security vulnerabilities.", "Summarize the hearing"));
+  // Three imports of one prompt fold into a single repeat-<hash> key, but an
+  // older bridge stored each under its own id (as a placeholder-titled thread).
+  for (const n of [1, 2, 3]) {
+    copy("imported-claude-session", `imported-review-${n}`, (text) => text.replaceAll(importedId, `rev${n}0000-1111-2222-3333-444444444444`));
   }
 
-  assert.deepEqual(listDelegatedSubSessionIds(root), ["efefefef-1111-2222-3333-444444444444"]);
+  const keys = listSkippedSessionKeys(root);
+  assert.deepEqual(keys.filter((key) => !key.startsWith("repeat-")).sort(), [
+    "efefefef-1111-2222-3333-444444444444",
+    "lone0000-1111-2222-3333-444444444444",
+    "rev10000-1111-2222-3333-444444444444",
+    "rev20000-1111-2222-3333-444444444444",
+    "rev30000-1111-2222-3333-444444444444",
+  ]);
+  assert.equal(keys.filter((key) => /^repeat-[0-9a-f]+$/.test(key)).length, 1);
 });

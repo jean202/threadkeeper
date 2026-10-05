@@ -25,7 +25,7 @@
 ### 세션 고르기
 
 - `--session <id 일부>`: 파일 이름에 포함되는 가장 최근 rollout.
-- 아니면 `--cwd`(기본: 현재 폴더)에서 돌았던 가장 최근 rollout(파일 mtime 기준). 하위 에이전트 세션은 건너뛴다.
+- 아니면 `--cwd`(기본: 현재 폴더)에서 돌았던 가장 최근 rollout(파일 mtime 기준). 하위 에이전트 세션과, Codex가 가져온 Claude 세션 중 Codex에서 이어 쓰지 않은 것은 건너뛴다. 가져온 세션에서 Codex가 이어 쓴 경우 재생된 `external-import-turn-N` 턴은 패킷에서 뺀다.
 - 폴더 비교는 `.claude/worktrees/<name>` 접미사를 떼고 realpath로 맞춘다. Claude 데스크톱이 worktree에서 열려도 같은 프로젝트로 본다.
 - `--codex-home`은 import와 같은 의미(세션 루트, 기본 `~/.codex/sessions`)이고, 스레드 이름은 그 부모의 `session_index.jsonl`에서 읽는다.
 

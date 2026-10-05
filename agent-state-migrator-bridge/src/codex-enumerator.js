@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
+import { collapseRepeatedPrompts } from "./repeat-collapser.js";
 import { sanitizeString } from "./sanitize.js";
 
 const TITLE_MAX = 200;
@@ -205,13 +206,47 @@ function isDelegatedSubSession(lines) {
   });
 }
 
-export function extractSessionFromFile(filePath) {
-  const raw = readFileSync(filePath, "utf8");
-  const lines = raw.split(/\r?\n/).filter((line) => line.length > 0);
-  if (lines.length === 0) return null;
+const IMPORTED_TURN_PREFIX = "external-import-";
 
-  const meta = safeParseLine(lines[0]);
+/**
+ * Codex can import another agent's session (a Claude Code transcript): it
+ * replays it as turns with ids "external-import-turn-N", ahead of any turn
+ * Codex then runs itself. Those turns are the other agent's work, already
+ * imported from its own transcript, so they are dropped here. Returns null
+ * when nothing but replayed turns is left -- a session Codex never ran.
+ */
+export function withoutImportedTurns(lines) {
+  const kept = [];
+  let replayed = false;
+  let ranItself = false;
+  let inReplayedTurn = false;
+  for (const [index, line] of lines.entries()) {
+    const obj = index > 0 && line.includes('"task_started"') ? safeParseLine(line) : null;
+    if (obj?.type === "event_msg" && obj.payload?.type === "task_started") {
+      inReplayedTurn = String(obj.payload.turn_id ?? "").startsWith(IMPORTED_TURN_PREFIX);
+      if (inReplayedTurn) replayed = true;
+      else ranItself = true;
+    }
+    if (!inReplayedTurn) kept.push(line);
+  }
+  return replayed && !ranItself ? null : kept;
+}
+
+/**
+ * `keepSkipped` reads the file the way the import did before it learned to
+ * skip delegated and imported sessions, to tell which keys it used to emit.
+ */
+export function extractSessionFromFile(filePath, { keepSkipped = false } = {}) {
+  const raw = readFileSync(filePath, "utf8");
+  const allLines = raw.split(/\r?\n/).filter((line) => line.length > 0);
+  if (allLines.length === 0) return null;
+
+  const meta = safeParseLine(allLines[0]);
   if (!meta || meta.type !== "session_meta" || !meta.payload?.id) return null;
+
+  const ownLines = withoutImportedTurns(allLines);
+  if (ownLines === null && !keepSkipped) return null;
+  const lines = keepSkipped ? allLines : ownLines;
 
   const payload = meta.payload;
   const startedAt = payload.timestamp ?? null;
@@ -219,7 +254,7 @@ export function extractSessionFromFile(filePath) {
   const originalIntent = findFirstUserMessage(lines);
   // Only when nobody typed into it: a session the user drives can still
   // exchange messages with agents it spawned.
-  if (originalIntent === null && isDelegatedSubSession(lines)) return null;
+  if (originalIntent === null && isDelegatedSubSession(lines) && !keepSkipped) return null;
   return {
     provider: "CODEX",
     providerSessionKey: payload.id,
@@ -236,40 +271,38 @@ export function extractSessionFromFile(filePath) {
 }
 
 /**
- * Session ids of the delegated sub-sessions under `rootDir` -- the ones
- * extractSessionFromFile leaves out. For cleaning up threads imported before
+ * Source session keys an import may have stored for the rollouts under
+ * `rootDir` that it now skips (delegated sub-sessions, sessions Codex
+ * imported): their session ids, and the repeat-<hash> keys that existed only
+ * because of them. The ids are listed even when the sessions would fold into
+ * a repeat key: an older bridge, before folding or before it found their
+ * prompt, stored each on its own. For cleaning up threads imported before
  * they were skipped.
  */
-export function listDelegatedSubSessionIds(rootDir) {
-  const ids = [];
-  for (const file of findRolloutFiles(rootDir)) {
-    try {
-      const lines = readFileSync(file, "utf8").split(/\r?\n/).filter((line) => line.length > 0);
-      const meta = safeParseLine(lines[0] ?? "");
-      if (meta?.type !== "session_meta" || !meta.payload?.id) continue;
-      if (findFirstUserMessage(lines) === null && isDelegatedSubSession(lines)) {
-        ids.push(meta.payload.id);
-      }
-    } catch {
-      // An unreadable file is not evidence of anything; leave it out.
-    }
-  }
-  return ids;
+export function listSkippedSessionKeys(rootDir) {
+  const before = enumerateCodexSessions(rootDir, { keepSkipped: true }).sessions;
+  const now = enumerateCodexSessions(rootDir).sessions;
+  const keys = (sessions) => new Set(collapseRepeatedPrompts(sessions).sessions.map((session) => session.providerSessionKey));
+  const nowIds = new Set(now.map((session) => session.providerSessionKey));
+  const nowKeys = keys(now);
+  const skippedIds = before.map((session) => session.providerSessionKey).filter((id) => !nowIds.has(id));
+  const droppedKeys = [...keys(before)].filter((key) => !nowKeys.has(key));
+  return [...new Set([...skippedIds, ...droppedKeys])];
 }
 
-export function enumerateCodexSessions(rootDir) {
+export function enumerateCodexSessions(rootDir, { keepSkipped = false } = {}) {
   const files = findRolloutFiles(rootDir);
   const sessions = [];
   let skippedFiles = 0;
   const warnings = [];
   for (const file of files) {
     try {
-      const session = extractSessionFromFile(file);
+      const session = extractSessionFromFile(file, { keepSkipped });
       if (session) {
         sessions.push(session);
       } else {
         skippedFiles += 1;
-        warnings.push({ file, reason: "no session_meta, or a session another agent delegated" });
+        warnings.push({ file, reason: "no session_meta, a session another agent delegated, or one Codex imported" });
       }
     } catch (err) {
       skippedFiles += 1;

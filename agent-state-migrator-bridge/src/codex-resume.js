@@ -1,6 +1,13 @@
 import { closeSync, existsSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
-import { findRolloutFiles, projectDir, responseItemText, typedPromptText, typedUserText } from "./codex-enumerator.js";
+import {
+  findRolloutFiles,
+  projectDir,
+  responseItemText,
+  typedPromptText,
+  typedUserText,
+  withoutImportedTurns,
+} from "./codex-enumerator.js";
 import { sanitizeString } from "./sanitize.js";
 
 const REQUEST_MAX = 4000;
@@ -23,10 +30,13 @@ export class ResumeLookupError extends Error {
   }
 }
 
-function parseLines(raw) {
+function rawLines(file) {
+  return readFileSync(file, "utf8").split(/\r?\n/).filter((line) => line.length > 0);
+}
+
+function parseLines(lines) {
   const records = [];
-  for (const line of raw.split(/\r?\n/)) {
-    if (!line) continue;
+  for (const line of lines) {
     try {
       records.push(JSON.parse(line));
     } catch {
@@ -72,6 +82,14 @@ function isSubAgentSession(meta) {
   return typeof meta.source === "object" && meta.source !== null && "subagent" in meta.source;
 }
 
+/**
+ * Not a sub-agent's, and not another agent's transcript that Codex imported
+ * and nobody went on with: only those hold Codex work to pick up.
+ */
+function isResumable(file, meta) {
+  return !isSubAgentSession(meta) && withoutImportedTurns(rawLines(file)) !== null;
+}
+
 function sameProjectPath(dir) {
   const root = projectDir(path.resolve(dir));
   try {
@@ -92,7 +110,11 @@ export function findResumeSession({ sessionsRoot, cwd, session }) {
     .sort((a, b) => b.mtimeMs - a.mtimeMs);
 
   if (session) {
-    const hit = files.find(({ file }) => path.basename(file).includes(session));
+    const hit = files.find(({ file }) => {
+      if (!path.basename(file).includes(session)) return false;
+      const meta = readSessionMeta(file);
+      return meta !== null && isResumable(file, meta);
+    });
     if (hit) return hit.file;
     throw new ResumeLookupError(`No Codex session id contains "${session}".`, recentCandidates(files));
   }
@@ -100,8 +122,8 @@ export function findResumeSession({ sessionsRoot, cwd, session }) {
   const target = sameProjectPath(cwd);
   for (const { file } of files) {
     const meta = readSessionMeta(file);
-    if (!meta || isSubAgentSession(meta) || typeof meta.cwd !== "string") continue;
-    if (sameProjectPath(meta.cwd) === target) return file;
+    if (!meta || typeof meta.cwd !== "string") continue;
+    if (sameProjectPath(meta.cwd) === target && isResumable(file, meta)) return file;
   }
   throw new ResumeLookupError(`No Codex session ran in ${cwd}.`, recentCandidates(files));
 }
@@ -111,7 +133,7 @@ function recentCandidates(files) {
   for (const { file, mtimeMs } of files) {
     if (candidates.length === MAX_CANDIDATES) break;
     const meta = readSessionMeta(file);
-    if (!meta || isSubAgentSession(meta)) continue;
+    if (!meta || !isResumable(file, meta)) continue;
     candidates.push({ id: meta.id, cwd: meta.cwd ?? null, lastActivityAt: new Date(mtimeMs).toISOString(), file });
   }
   return candidates;
@@ -121,7 +143,7 @@ function recentCandidates(files) {
 export function readThreadNames(indexPath) {
   const names = new Map();
   if (!existsSync(indexPath)) return names;
-  for (const entry of parseLines(readFileSync(indexPath, "utf8"))) {
+  for (const entry of parseLines(rawLines(indexPath))) {
     if (typeof entry?.id === "string" && typeof entry.thread_name === "string") {
       names.set(entry.id, entry.thread_name);
     }
@@ -273,7 +295,9 @@ function latestRateLimit(records) {
 
 /** Everything Claude needs to pick up where a Codex session stopped. */
 export function buildResumePacket(filePath, { threadNames = new Map() } = {}) {
-  const records = parseLines(readFileSync(filePath, "utf8"));
+  const lines = rawLines(filePath);
+  // Turns Codex replayed from another agent's transcript are not Codex's work.
+  const records = parseLines(withoutImportedTurns(lines) ?? lines);
   const meta = records[0]?.type === "session_meta" ? records[0].payload : {};
   const cwd = typeof meta.cwd === "string" ? meta.cwd : null;
   const turns = splitTurns(records.slice(1));

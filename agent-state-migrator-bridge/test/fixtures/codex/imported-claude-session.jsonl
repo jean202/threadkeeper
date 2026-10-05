@@ -1,0 +1,7 @@
+{"timestamp":"2026-09-08T00:42:39.000Z","type":"session_meta","payload":{"id":"cdcdcdcd-1111-2222-3333-444444444444","timestamp":"2026-09-08T00:42:39.000Z","cwd":"/Users/dev/work/record-to-evidence","originator":"Codex Desktop","source":"vscode","model_provider":"openai","history_mode":"legacy"}}
+{"timestamp":"2026-09-08T00:42:40.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"external-import-turn-1","model_context_window":null}}
+{"timestamp":"2026-09-08T00:42:40.000Z","type":"event_msg","payload":{"type":"user_message","message":"Review this change for security vulnerabilities."}}
+{"timestamp":"2026-09-08T00:42:40.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Review this change for security vulnerabilities."}]}}
+{"timestamp":"2026-09-08T00:42:40.000Z","type":"event_msg","payload":{"type":"agent_message","message":"No findings."}}
+{"timestamp":"2026-09-08T00:42:40.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"No findings."}]}}
+{"timestamp":"2026-09-08T00:42:45.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"external-import-turn-1","last_agent_message":null}}

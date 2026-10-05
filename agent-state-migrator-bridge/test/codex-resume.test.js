@@ -76,6 +76,14 @@ const LIMITED_TURN = [
 
 const LIMITED = [meta(LIMITED_ID, CWD), ...FIRST_TURN, ...LIMITED_TURN];
 
+/** A turn Codex replayed from another agent's transcript when importing it. */
+const importedTurn = (n, request, answer) => [
+  event("task_started", { turn_id: `external-import-turn-${n}` }),
+  userItem(request),
+  agentItem(answer, null),
+  event("task_complete", { turn_id: `external-import-turn-${n}`, last_agent_message: null }),
+];
+
 /** Writes records as a rollout, stamping each with a later timestamp than the last. */
 function writeRollout(dir, name, records, mtime) {
   mkdirSync(dir, { recursive: true });
@@ -105,6 +113,8 @@ function codexHome() {
     [meta("sub22222-0000", CWD, { source: { subagent: { thread_spawn: { parent_thread_id: LIMITED_ID } } } }), ...FIRST_TURN],
     at(40),
   );
+  // A Claude session Codex imported: the newest in the folder, but Codex never ran it.
+  writeRollout(day, "rollout-2026-10-04T06-50-00-imp33333-0000.jsonl", [meta("imp33333-0000", CWD), ...importedTurn(1, "리뷰해줘", "문제 없음")], at(50));
   writeFileSync(
     path.join(home, "session_index.jsonl"),
     [
@@ -192,7 +202,7 @@ test("renders the packet for Claude without the context Codex wrapped around the
   assert.doesNotMatch(markdown, /in-app-browser-context|environment_context|## My request/);
 });
 
-test("picks the latest session that ran in the folder, skipping sub-agent sessions", () => {
+test("picks the latest session that ran in the folder, skipping sub-agent and imported sessions", () => {
   const { sessions } = codexHome();
   const file = findResumeSession({ sessionsRoot: sessions, cwd: CWD });
   assert.equal(path.basename(file), `rollout-2026-10-04T06-00-00-${LIMITED_ID}.jsonl`);
@@ -221,6 +231,20 @@ test("lists recent sessions when none ran in the folder", () => {
       return true;
     },
   );
+});
+
+test("leaves the turns Codex imported from another agent out of the packet", () => {
+  const packet = buildResumePacket(
+    tempRollout([meta(LIMITED_ID, CWD), ...importedTurn(1, "Claude에게 한 요청", "Claude의 답"), ...FIRST_TURN, ...LIMITED_TURN]),
+  );
+  assert.equal(packet.originalIntent, "스코어 어드민 작업 범위 정리해줘");
+  assert.deepEqual(packet.previousTurns.map((turn) => turn.request), ["스코어 어드민 작업 범위 정리해줘"]);
+  assert.deepEqual(packet.lastTurn.requests, ["응 1 하고 2 해줘"]);
+});
+
+test("does not offer an imported session nobody went on with in Codex, even by id", () => {
+  const { sessions } = codexHome();
+  assert.throws(() => findResumeSession({ sessionsRoot: sessions, cwd: CWD, session: "imp33333" }), ResumeLookupError);
 });
 
 test("reads thread names from session_index.jsonl, the latest rename winning", () => {
