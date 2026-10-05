@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
-# One-off cleanup for threads imported from Codex sub-sessions before the
-# bridge started leaving them out (isDelegatedSubSession in
-# agent-state-migrator-bridge/src/codex-enumerator.js).
+# One-off cleanup for threads imported from Codex rollouts the bridge now
+# skips (extractSessionFromFile in agent-state-migrator-bridge/src/codex-enumerator.js):
 #
-# A sub-session is one another Codex agent opened to hand off part of its
-# work: nobody typed into it, so it came in titled "<project> session <date>",
-# and the work it did already belongs to the session that delegated it. The
-# bridge no longer imports these, so the threads made from them would sit
+# - delegated sub-sessions: another Codex agent opened them to hand off part of
+#   its work. Nobody typed into them, so they came in titled
+#   "<project> session <date>", and their work belongs to the delegating session.
+# - Claude sessions Codex imported and nobody went on with in Codex: Codex
+#   replays the transcript as "external-import-turn-N" turns, and the Claude
+#   original is imported on its own, so each was a second copy of a Claude thread.
+#
+# The bridge no longer imports these, so the threads made from them would sit
 # there unrefreshed forever.
 #
-# The session ids come from the bridge's own check run over ~/.codex/sessions,
-# so this removes exactly the sessions the import now skips. A thread is
-# removed only when every source session on it is one of them and it has no
-# handoff.
+# The keys come from the bridge itself (listSkippedSessionKeys): the session
+# ids of the rollouts under ~/.codex/sessions it now skips, and the
+# repeat-<hash> keys that existed only because of them. Ids are listed even for
+# sessions that fold into a repeat key, since an older bridge stored each on its
+# own. A thread is removed only when every source session on it is one of them
+# and it has no handoff.
 #
 # Usage:
-#   scripts/remove-delegated-codex-threads.sh           # preview only, changes nothing
-#   scripts/remove-delegated-codex-threads.sh --apply   # delete, in one transaction
+#   scripts/remove-skipped-codex-threads.sh           # preview only, changes nothing
+#   scripts/remove-skipped-codex-threads.sh --apply   # delete, in one transaction
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -31,29 +36,29 @@ esac
 
 IDS="$(cd "$PROJECT_DIR/agent-state-migrator-bridge" && CODEX_SESSIONS="$CODEX_SESSIONS" node -e '
   import("./src/codex-enumerator.js").then((m) => {
-    for (const id of m.listDelegatedSubSessionIds(process.env.CODEX_SESSIONS)) console.log(id);
+    for (const key of m.listSkippedSessionKeys(process.env.CODEX_SESSIONS)) console.log(key);
   });
 ')"
 
 if [ -z "$IDS" ]; then
-  echo "No delegated Codex sub-sessions under $CODEX_SESSIONS. Nothing to do."
+  echo "No skipped Codex sessions under $CODEX_SESSIONS. Nothing to do."
   exit 0
 fi
 
-# The ids end up inside SQL, so take nothing but the shape a session id has.
+# The keys end up inside SQL, so take nothing but the shape a session key has.
 VALUES=""
 while IFS= read -r id; do
   if ! [[ "$id" =~ ^[0-9A-Za-z-]+$ ]]; then
-    echo "Refusing unexpected session id: $id" >&2
+    echo "Refusing unexpected session key: $id" >&2
     exit 1
   fi
   VALUES="${VALUES:+$VALUES,}('$id')"
 done <<< "$IDS"
-echo "Delegated sub-sessions found: $(wc -l <<< "$IDS" | tr -d ' ')"
+echo "Skipped Codex session keys found: $(wc -l <<< "$IDS" | tr -d ' ')"
 
 CANDIDATES="
-create temporary table delegated (key text) on commit drop;
-insert into delegated values $VALUES;
+create temporary table skipped (key text) on commit drop;
+insert into skipped values $VALUES;
 create temporary table doomed on commit drop as
 select t.id
 from threads t
@@ -61,7 +66,7 @@ where exists (select 1 from source_sessions s where s.thread_id = t.id)
   and not exists (
       select 1 from source_sessions s
       where s.thread_id = t.id
-        and (s.provider <> 'CODEX' or s.provider_session_key not in (select key from delegated))
+        and (s.provider <> 'CODEX' or s.provider_session_key not in (select key from skipped))
   )
   and not exists (select 1 from handoffs h where h.thread_id = t.id)
   and not exists (
